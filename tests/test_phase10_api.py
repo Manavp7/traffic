@@ -83,10 +83,16 @@ def test_emergency(client):
     net = client.get("/network").json()
     j = {x["id"]: x for x in net["junctions"]}
     a, b = j["J0_0"], j["J3_3"]
-    r = client.post("/emergency", json={
-        "type": "ambulance", "lat": a["lat"], "lon": a["lon"],
-        "dest_lat": b["lat"], "dest_lon": b["lon"],
-    }).json()
+    r = client.post(
+        "/emergency",
+        json={
+            "type": "ambulance",
+            "lat": a["lat"],
+            "lon": a["lon"],
+            "dest_lat": b["lat"],
+            "dest_lon": b["lon"],
+        },
+    ).json()
     assert r["route_segments"]
     assert r["eta_s"] <= r["baseline_eta_s"] + 1e-6
 
@@ -94,11 +100,16 @@ def test_emergency(client):
 def test_planning_scenario(client):
     net = client.get("/network").json()
     seg = net["segments"][0]["id"]
-    r = client.post("/planning/scenario", json={
-        "id": "t1", "name": "Widen", "edits": [
-            {"op": "widen_lane", "target": seg, "params": {"delta": 1}},
-        ],
-    }).json()
+    r = client.post(
+        "/planning/scenario",
+        json={
+            "id": "t1",
+            "name": "Widen",
+            "edits": [
+                {"op": "widen_lane", "target": seg, "params": {"delta": 1}},
+            ],
+        },
+    ).json()
     assert "deltas" in r and "summary" in r
 
 
@@ -109,8 +120,14 @@ def test_forecast(client):
 
 
 def test_citizen_report_roundtrip(client):
-    payload = {"id": "R1", "ts": "2025-01-01T09:00:00+00:00", "type": "pothole",
-               "lat": 12.97, "lon": 77.59, "note": "big pothole"}
+    payload = {
+        "id": "R1",
+        "ts": "2025-01-01T09:00:00+00:00",
+        "type": "pothole",
+        "lat": 12.97,
+        "lon": 77.59,
+        "note": "big pothole",
+    }
     assert client.post("/reports", json=payload).json()["status"] == "received"
     reports = client.get("/reports").json()
     assert any(r["id"] == "R1" for r in reports)

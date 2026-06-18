@@ -31,9 +31,16 @@ def _inject_blocking_incident(net, st):
     st.db.upsert(
         "incident",
         Incident(
-            id="INC-block", ts=datetime.now(), type=IncidentType.ACCIDENT,
-            lat=mid[0], lon=mid[1], segment_id=road, severity=0.9,
-            segments_blocked=[road], status=IncidentStatus.ACTIVE, description="Accident blocking road",
+            id="INC-block",
+            ts=datetime.now(),
+            type=IncidentType.ACCIDENT,
+            lat=mid[0],
+            lon=mid[1],
+            segment_id=road,
+            severity=0.9,
+            segments_blocked=[road],
+            status=IncidentStatus.ACTIVE,
+            description="Accident blocking road",
         ),
     )
     return road

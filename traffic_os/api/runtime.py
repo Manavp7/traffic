@@ -42,12 +42,18 @@ class AppState:
         from traffic_os.copilot import CopilotService
 
         self.copilot = CopilotService(
-            self.storage, self.intelligence, kg=self.kg, prediction=self.prediction,
-            planning=self.planning, recommendation=self.recommendation,
+            self.storage,
+            self.intelligence,
+            kg=self.kg,
+            prediction=self.prediction,
+            planning=self.planning,
+            recommendation=self.recommendation,
         )
         self._task: asyncio.Task | None = None
         self._stop = False
         self.tick_sleep_s = 1.0  # wall-clock seconds between simulated ticks
+        self.cache: dict = {}  # heavy analytics refreshed in the background
+        self._refresh_interval_s = 12.0
 
     def _ensure_seeded(self, history_days: int) -> None:
         if self.storage.db.count("road_segment") == 0:
@@ -57,8 +63,9 @@ class AppState:
         if self.storage.db.count("segment_metric") == 0:
             net = load_network(self.storage.db)
             log.info("Generating history for forecasting ...")
-            generate_history(net, self.storage.db, days=history_days, step_min=15,
-                             seed=self.settings.sim_seed)
+            generate_history(
+                net, self.storage.db, days=history_days, step_min=15, seed=self.settings.sim_seed
+            )
 
     async def _loop(self) -> None:
         log.info("Live simulation loop started")
@@ -68,9 +75,49 @@ class AppState:
             await self.storage.bus.publish("live.tick", self.engine.snapshot_message(snap))
             await asyncio.sleep(self.tick_sleep_s)
 
+    def _refresh_cache(self) -> None:
+        """(Re)compute heavy analytics and cache them so the UI stays snappy."""
+        import time
+
+        try:
+            if not self.prediction.models:
+                self.prediction.train()
+            recs = [r.model_dump(mode="json") for r in self.recommendation.generate()]
+            risk = [r.model_dump(mode="json") for r in self.prediction.top_risk(8)]
+            forecasts = self.prediction.forecast_all(60, persist=False)
+            favg = (
+                sum(f.predicted_congestion for f in forecasts) / len(forecasts)
+                if forecasts
+                else 0.0
+            )
+            self.cache = {
+                "recommendations": recs,
+                "risk": risk,
+                "forecast_avg": round(favg, 1),
+                "economics": self.planning.economic_summary(),
+                "updated_at": time.time(),
+            }
+        except Exception as exc:  # pragma: no cover
+            log.warning("Cache refresh failed: %s", exc)
+
+    def _refresh_loop(self) -> None:
+        import time
+
+        log.info("Analytics warmup starting ...")
+        self._refresh_cache()
+        log.info("Analytics warmup complete")
+        while not self._stop:
+            time.sleep(self._refresh_interval_s)
+            if self._stop:
+                break
+            self._refresh_cache()
+
     async def start(self) -> None:
         self._stop = False
         self._task = asyncio.create_task(self._loop())
+        import threading
+
+        threading.Thread(target=self._refresh_loop, daemon=True).start()
 
     async def stop(self) -> None:
         self._stop = True

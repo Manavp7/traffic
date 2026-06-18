@@ -43,10 +43,17 @@ async def lifespan(app: FastAPI):
     await state.stop()
 
 
-app = FastAPI(title="Traffic-OS", version="0.1.0",
-              description="National Traffic Intelligence Operating System", lifespan=lifespan)
+app = FastAPI(
+    title="Traffic-OS",
+    version="0.1.0",
+    description="National Traffic Intelligence Operating System",
+    lifespan=lifespan,
+)
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -60,8 +67,12 @@ def st() -> AppState:
 @app.get("/healthz")
 def healthz():
     s = st()
-    return {"status": "ok", "mode": s.settings.mode, "tick": s.engine.tick,
-            "segments": s.storage.db.count("road_segment")}
+    return {
+        "status": "ok",
+        "mode": s.settings.mode,
+        "tick": s.engine.tick,
+        "segments": s.storage.db.count("road_segment"),
+    }
 
 
 @app.get("/network")
@@ -159,8 +170,10 @@ def forecast(horizon: int = 60, segment: str | None = None):
 
 @app.get("/risk")
 def risk(n: int = 10):
-    pred = st().prediction
-    return {"top": _ser(pred.top_risk(n)), "backtests": pred.backtests}
+    s = st()
+    cached = s.cache.get("risk")
+    top = cached[:n] if cached is not None else _ser(s.prediction.top_risk(n))
+    return {"top": top, "backtests": s.prediction.backtests}
 
 
 # --------------------------------------------------------------------------- #
@@ -191,8 +204,14 @@ class EmergencyRequest(BaseModel):
 
 @app.post("/emergency")
 def emergency(req: EmergencyRequest):
-    ev = EmergencyVehicle(id="EV-req", type=req.type, lat=req.lat, lon=req.lon,
-                          dest_lat=req.dest_lat, dest_lon=req.dest_lon)
+    ev = EmergencyVehicle(
+        id="EV-req",
+        type=req.type,
+        lat=req.lat,
+        lon=req.lon,
+        dest_lat=req.dest_lat,
+        dest_lon=req.dest_lon,
+    )
     corridor = st().decision.emergency_corridor(ev)
     if corridor is None:
         raise HTTPException(404, "no corridor")
@@ -229,6 +248,9 @@ def planning_scenario(scenario: InfraScenario):
 # --------------------------------------------------------------------------- #
 @app.get("/recommendations")
 def recommendations(n: int = 12):
+    cached = st().cache.get("recommendations")
+    if cached is not None:
+        return cached[:n]
     return _ser(st().recommendation.generate(max_recs=n))
 
 
@@ -265,24 +287,16 @@ def copilot(req: CopilotRequest):
 @app.get("/commissioner")
 def commissioner():
     s = st()
-    summary = s.intelligence.summary()
-    economics = s.planning.economic_summary()
-    recs = s.recommendation.generate(max_recs=6)
-    out = {
-        "network": summary,
-        "economics": economics,
-        "recommendations": _ser(recs),
+    cache = s.cache
+    return {
+        "network": s.intelligence.summary(),
+        "economics": cache.get("economics") or s.planning.economic_summary(),
+        "recommendations": cache.get("recommendations", []),
         "top_hotspots": _ser(s.intelligence.hotspots(top_n=5)),
+        "accident_risk": cache.get("risk", []),
+        "forecast_avg": cache.get("forecast_avg", 0.0),
+        "warmed": "updated_at" in cache,
     }
-    try:
-        out["accident_risk"] = _ser(s.prediction.top_risk(5))
-        out["forecast_avg"] = sum(
-            f.predicted_congestion for f in s.prediction.forecast_all(60, persist=False)
-        ) / max(len(s.intelligence.net.segments), 1)
-    except Exception as exc:  # pragma: no cover
-        out["accident_risk"] = []
-        out["forecast_error"] = str(exc)
-    return out
 
 
 # --------------------------------------------------------------------------- #
@@ -295,8 +309,11 @@ def events():
 
 @app.get("/reports")
 def reports():
-    return _ser(st().storage.db.find("citizen_report", CitizenReport,
-                                     order_by_ts=True, desc=True, limit=200))
+    return _ser(
+        st().storage.db.find(
+            "citizen_report", CitizenReport, order_by_ts=True, desc=True, limit=200
+        )
+    )
 
 
 @app.post("/reports")

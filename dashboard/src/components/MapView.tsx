@@ -57,7 +57,16 @@ export default function MapView({
     });
     map.current.on("load", () => {
       ready.current = true;
+      map.current!.resize();
     });
+    // the flex container may settle after init — keep the canvas sized correctly
+    const ro = new ResizeObserver(() => map.current?.resize());
+    ro.observe(ref.current);
+    const timers = [200, 600, 1500].map((t) => setTimeout(() => map.current?.resize(), t));
+    return () => {
+      ro.disconnect();
+      timers.forEach(clearTimeout);
+    };
   }, []);
 
   // build/update segments when network or congestion changes

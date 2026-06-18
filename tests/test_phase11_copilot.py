@@ -26,12 +26,21 @@ def _copilot(demand=80, ticks=45):
     for k in range(3):
         seg = list(net.segments.values())[k]
         mid = seg.geometry[len(seg.geometry) // 2]
-        st.db.upsert("incident", Incident(
-            id=f"ACC-{k}", ts=datetime.now(), type=IncidentType.ACCIDENT,
-            lat=mid[0], lon=mid[1], segment_id=seg.id, severity=0.7,
-            segments_blocked=[seg.id] if k == 0 else [], status=IncidentStatus.ACTIVE,
-            description="accident",
-        ))
+        st.db.upsert(
+            "incident",
+            Incident(
+                id=f"ACC-{k}",
+                ts=datetime.now(),
+                type=IncidentType.ACCIDENT,
+                lat=mid[0],
+                lon=mid[1],
+                segment_id=seg.id,
+                severity=0.7,
+                segments_blocked=[seg.id] if k == 0 else [],
+                status=IncidentStatus.ACTIVE,
+                description="accident",
+            ),
+        )
     intel = IntelligenceService(st)
     kg = KnowledgeGraphService(st, intel)
     planning = PlanningService(st)

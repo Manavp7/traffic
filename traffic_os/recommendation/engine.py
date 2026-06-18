@@ -97,12 +97,17 @@ class RecommendationEngine:
             rationale = self._rationale_for_junction(hs.junction_id)
             out.append(
                 Recommendation(
-                    id=self._rid("SIG", hs.junction_id), ts=utcnow(),
+                    id=self._rid("SIG", hs.junction_id),
+                    ts=utcnow(),
                     trigger=f"Junction {hs.name} congested ({hs.congestion:.0f}/100)",
                     action_type=ActionType.SIGNAL_RETIME,
                     target=plan.signal_id,
-                    params={"junction": hs.junction_id, "phase": cand.phase_id,
-                            "green_s": cand.green_s, "delta_s": round(delta, 1)},
+                    params={
+                        "junction": hs.junction_id,
+                        "phase": cand.phase_id,
+                        "green_s": cand.green_s,
+                        "delta_s": round(delta, 1),
+                    },
                     expected_effect=f"+{delta:.0f}s green on phase {cand.phase_id} to clear the busiest approach",
                     impact_score=round(hs.congestion + delta, 1),
                     confidence=0.75,
@@ -120,13 +125,15 @@ class RecommendationEngine:
             seg = self.net.segments.get(bn.segment_id)
             if seg is None:
                 continue
-            rr = reroute_around(self.net, seg.from_junction, seg.to_junction,
-                                {bn.segment_id}, metrics)
+            rr = reroute_around(
+                self.net, seg.from_junction, seg.to_junction, {bn.segment_id}, metrics
+            )
             if not rr.feasible or not rr.detour_route:
                 continue
             out.append(
                 Recommendation(
-                    id=self._rid("DIV", bn.segment_id), ts=utcnow(),
+                    id=self._rid("DIV", bn.segment_id),
+                    ts=utcnow(),
                     trigger=f"Bottleneck on {bn.name} ({bn.speed_kph:.0f} km/h, queue {bn.congestion:.0f})",
                     action_type=ActionType.DIVERT,
                     target=bn.segment_id,
@@ -149,18 +156,23 @@ class RecommendationEngine:
             seg = self.net.segments.get(inc.segment_id or "")
             if seg is None:
                 continue
-            rr = reroute_around(self.net, seg.from_junction, seg.to_junction,
-                                set(inc.segments_blocked))
+            rr = reroute_around(
+                self.net, seg.from_junction, seg.to_junction, set(inc.segments_blocked)
+            )
             detour = rr.detour_route if rr.feasible else []
             out.append(
                 Recommendation(
-                    id=self._rid("INC", inc.id), ts=utcnow(),
+                    id=self._rid("INC", inc.id),
+                    ts=utcnow(),
                     trigger=f"{inc.type.value.title()} blocking {seg.name}",
                     action_type=ActionType.DIVERT if detour else ActionType.ALERT,
                     target=inc.segment_id or seg.id,
                     params={"incident": inc.id, "detour": detour},
-                    expected_effect=("Reroute around the blockage via alternate roads"
-                                     if detour else "Alert drivers; clear the blockage urgently"),
+                    expected_effect=(
+                        "Reroute around the blockage via alternate roads"
+                        if detour
+                        else "Alert drivers; clear the blockage urgently"
+                    ),
                     impact_score=round(70 + inc.severity * 30, 1),
                     confidence=0.8,
                     rationale=f"{inc.description} (severity {inc.severity:.1f}).",
@@ -186,7 +198,8 @@ class RecommendationEngine:
             drivers = ", ".join(f"{k}={v}" for k, v in risk.drivers.items() if v)
             out.append(
                 Recommendation(
-                    id=self._rid("RISK", risk.segment_id), ts=utcnow(),
+                    id=self._rid("RISK", risk.segment_id),
+                    ts=utcnow(),
                     trigger=f"Accident risk {risk.risk_pct:.0f}% on {name}",
                     action_type=ActionType.ALERT,
                     target=risk.segment_id,
@@ -194,7 +207,11 @@ class RecommendationEngine:
                     expected_effect="Deploy patrol / lower speed limit / warn drivers to pre-empt a crash",
                     impact_score=round(risk.risk_pct, 1),
                     confidence=0.6,
-                    rationale=f"Elevated risk drivers: {drivers}." if drivers else "Elevated accident risk.",
+                    rationale=(
+                        f"Elevated risk drivers: {drivers}."
+                        if drivers
+                        else "Elevated accident risk."
+                    ),
                 )
             )
         return out
