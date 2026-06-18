@@ -29,7 +29,9 @@ class DecisionService:
         return self._net
 
     def _latest_metrics(self) -> dict[str, SegmentMetric]:
-        return {m.segment_id: m for m in self.storage.db.latest_per_segment(SegmentMetric)}
+        from traffic_os.intelligence.current import current_metrics
+
+        return current_metrics(self.storage.db)
 
     # -- adaptive signals ------------------------------------------------- #
     def signal_plan(self, metrics: dict[str, SegmentMetric] | None = None) -> list[SignalPlan]:

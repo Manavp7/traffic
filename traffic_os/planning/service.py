@@ -23,7 +23,9 @@ class PlanningService:
         return self._net
 
     def _latest_metrics(self) -> dict[str, SegmentMetric]:
-        return {m.segment_id: m for m in self.storage.db.latest_per_segment(SegmentMetric)}
+        from traffic_os.intelligence.current import current_metrics
+
+        return current_metrics(self.storage.db)
 
     # -- economics -------------------------------------------------------- #
     def economic_impact(self, *, window_h: float = 24.0, persist: bool = True) -> EconomicImpact:

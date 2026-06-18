@@ -131,6 +131,25 @@ class SimulationEngine:
             mean_speed_kph=round(mean_speed, 2),
         )
 
+    def persist_live(self, storage, snap: LiveSnapshot) -> None:
+        """Overwrite small 'live' collections each tick (bounded, no growth).
+
+        ``live_metric``/``signal_state``/``track`` are cleared+rewritten; incidents are
+        upserted (kept for history). The historical ``segment_metric`` series is left to
+        the offline history generator so forecasting keeps a long window.
+        """
+        db = storage.db
+        db.clear("live_metric")
+        db.upsert_many("live_metric", snap.metrics)
+        db.clear("signal_state")
+        db.upsert_many("signal_state", snap.signal_states)
+        db.clear("track")
+        if snap.tracks:
+            db.upsert_many("track", snap.tracks)
+        if snap.incidents:
+            db.upsert_many("incident", snap.incidents)
+        db.upsert("weather", snap.weather)
+
     def persist(self, storage, snap: LiveSnapshot) -> None:
         db = storage.db
         db.upsert_many("segment_metric", snap.metrics)

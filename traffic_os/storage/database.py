@@ -68,12 +68,27 @@ def _promoted(obj: BaseModel) -> dict[str, Any]:
 
 class SqlDatabase(Database):
     def __init__(self, engine: Engine) -> None:
+        import threading
+
         self.engine = engine
+        # serialise access — SQLite (file or :memory:) is not safe under concurrent
+        # use from the live sim loop + API request threads.
+        self._lock = threading.RLock()
         _metadata.create_all(engine)
 
     @classmethod
     def sqlite(cls, path: str) -> SqlDatabase:
-        engine = create_engine(f"sqlite:///{path}", future=True)
+        # check_same_thread=False so FastAPI worker threads can share the connection;
+        # in-memory DBs additionally need a StaticPool so every thread sees one DB.
+        kwargs: dict[str, Any] = {
+            "future": True,
+            "connect_args": {"check_same_thread": False},
+        }
+        if path == ":memory:":
+            from sqlalchemy.pool import StaticPool
+
+            kwargs["poolclass"] = StaticPool
+        engine = create_engine(f"sqlite:///{path}", **kwargs)
         return cls(engine)
 
     @classmethod
@@ -103,7 +118,7 @@ class SqlDatabase(Database):
                     "data": _dump(obj),
                 }
             )
-        with self.engine.begin() as conn:
+        with self._lock, self.engine.begin() as conn:
             for row in rows:
                 conn.execute(
                     delete(entities).where(
@@ -114,7 +129,7 @@ class SqlDatabase(Database):
 
     # -- reads ------------------------------------------------------------ #
     def get(self, collection: str, id_: str, model: type[BaseModel]) -> Any | None:
-        with self.engine.connect() as conn:
+        with self._lock, self.engine.connect() as conn:
             r = conn.execute(
                 select(entities.c.data).where(
                     entities.c.collection == collection, entities.c.id == id_
@@ -141,7 +156,7 @@ class SqlDatabase(Database):
             stmt = stmt.order_by(entities.c.ts.desc() if desc else entities.c.ts.asc())
         if limit:
             stmt = stmt.limit(limit)
-        with self.engine.connect() as conn:
+        with self._lock, self.engine.connect() as conn:
             rows = conn.execute(stmt).fetchall()
         return [model.model_validate(orjson.loads(r[0])) for r in rows]
 
@@ -164,7 +179,7 @@ class SqlDatabase(Database):
         stmt = stmt.order_by(entities.c.ts.asc())
         if limit:
             stmt = stmt.limit(limit)
-        with self.engine.connect() as conn:
+        with self._lock, self.engine.connect() as conn:
             rows = conn.execute(stmt).fetchall()
         return [model.model_validate(orjson.loads(r[0])) for r in rows]
 
@@ -183,7 +198,7 @@ class SqlDatabase(Database):
             )
             .where(entities.c.collection == "segment_metric")
         )
-        with self.engine.connect() as conn:
+        with self._lock, self.engine.connect() as conn:
             rows = conn.execute(stmt).fetchall()
         return [model.model_validate(orjson.loads(r[0])) for r in rows]
 
@@ -193,11 +208,11 @@ class SqlDatabase(Database):
             col = getattr(entities.c, key, None)
             if col is not None:
                 stmt = stmt.where(col == (str(val) if key == "status" else val))
-        with self.engine.connect() as conn:
+        with self._lock, self.engine.connect() as conn:
             return int(conn.execute(stmt).scalar() or 0)
 
     def clear(self, collection: str | None = None) -> None:
-        with self.engine.begin() as conn:
+        with self._lock, self.engine.begin() as conn:
             if collection:
                 conn.execute(delete(entities).where(entities.c.collection == collection))
             else:

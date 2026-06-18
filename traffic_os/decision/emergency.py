@@ -46,8 +46,10 @@ def plan_corridor(
         m = metrics.get(sid)
         cur_speed = m.speed_kph if m and m.speed_kph > 1 else seg.speed_limit_kph
         baseline_eta += seg.length_m / max(cur_speed / 3.6, 0.5)
-        # preempted corridor: emergency travels at (near) free flow
-        corridor_eta += seg.length_m / max(seg.speed_limit_kph / 3.6 * 0.9, 0.5)
+        # preempted corridor: emergency travels at near free-flow, and never slower
+        # than the current traffic (so a corridor is always >= as fast as baseline)
+        corridor_speed = max(cur_speed, seg.speed_limit_kph * 0.9)
+        corridor_eta += seg.length_m / max(corridor_speed / 3.6, 0.5)
         sig = net.signal_for_junction(seg.to_junction)
         if sig is not None:
             signals_preempted.append(sig.id)

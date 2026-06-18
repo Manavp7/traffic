@@ -39,14 +39,15 @@ class IntelligenceService:
 
     # -- metrics ---------------------------------------------------------- #
     def latest_metrics(self) -> dict[str, SegmentMetric]:
-        rows = self.storage.db.latest_per_segment(SegmentMetric)
+        from traffic_os.intelligence.current import current_metrics
+
         out: dict[str, SegmentMetric] = {}
-        for m in rows:
-            seg = self.net.segments.get(m.segment_id)
+        for sid, m in current_metrics(self.storage.db).items():
+            seg = self.net.segments.get(sid)
             if seg is None:
                 continue
             m.congestion_score = self.model.score(m, seg)  # authoritative
-            out[m.segment_id] = m
+            out[sid] = m
         return out
 
     def recompute_history(self) -> int:

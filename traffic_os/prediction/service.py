@@ -10,7 +10,7 @@ from traffic_os.common.logging import get_logger
 from traffic_os.prediction.accident_risk import RiskModel
 from traffic_os.prediction.features import FORECAST_FEATURES, load_frame
 from traffic_os.prediction.forecast import ForecastModel
-from traffic_os.schemas import AccidentRisk, CityEvent, Forecast, SegmentMetric, Weather
+from traffic_os.schemas import AccidentRisk, CityEvent, Forecast, Weather
 from traffic_os.simulation.network import RoadNetwork, load_network
 
 log = get_logger("prediction.service")
@@ -112,9 +112,11 @@ class PredictionService:
     # -- accident risk ---------------------------------------------------- #
     def accident_risk_all(self, *, persist: bool = True) -> list[AccidentRisk]:
         self._ensure_trained()
+        from traffic_os.intelligence.current import current_metrics
+
         weathers = self.storage.db.find("weather", Weather, order_by_ts=True, desc=True, limit=1)
         weather = weathers[0] if weathers else None
-        latest = {m.segment_id: m for m in self.storage.db.latest_per_segment(SegmentMetric)}
+        latest = current_metrics(self.storage.db)
         out = []
         for sid, m in latest.items():
             seg = self.net.segments.get(sid)

@@ -86,6 +86,10 @@ class EventBus(ABC):
     @abstractmethod
     def subscribe(self, topic: str) -> Subscription: ...
 
+    def latest(self, topic: str) -> dict[str, Any] | None:
+        """Most recent message on a topic, if the backend retains one."""
+        return None
+
 
 class Subscription(ABC):
     @abstractmethod
