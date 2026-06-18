@@ -137,6 +137,21 @@ def collisions():
     return _ser(st().intelligence.collisions())
 
 
+@app.get("/analytics/timeseries")
+def analytics_timeseries(segment: str | None = None, hours: int = 24):
+    from traffic_os.intelligence.analytics import network_timeseries
+
+    return network_timeseries(st().storage.db, segment_id=segment, hours=hours)
+
+
+@app.get("/analytics/profile")
+def analytics_profile():
+    from traffic_os.intelligence.analytics import daily_profile, hourly_profile
+
+    db = st().storage.db
+    return {"hourly": hourly_profile(db), "daily": daily_profile(db)}
+
+
 # --------------------------------------------------------------------------- #
 # violations / incidents
 # --------------------------------------------------------------------------- #
