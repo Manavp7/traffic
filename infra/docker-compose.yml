@@ -1,0 +1,60 @@
+# Production datastores for Traffic-OS (prod mode).
+# Dev mode needs none of these — it uses SQLite + embedded Kùzu + filesystem.
+#
+#   docker compose -f infra/docker-compose.yml up -d
+#   TOS_MODE=prod uvicorn traffic_os.api.app:app
+#
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: traffic
+      POSTGRES_PASSWORD: traffic
+      POSTGRES_DB: traffic
+    ports: ["5432:5432"]
+    volumes: ["pg:/var/lib/postgresql/data"]
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: traffic
+      POSTGRES_PASSWORD: traffic
+      POSTGRES_DB: metrics
+    ports: ["5433:5432"]
+    volumes: ["ts:/var/lib/postgresql/data"]
+
+  neo4j:
+    image: neo4j:5
+    environment:
+      NEO4J_AUTH: neo4j/traffic-os
+    ports: ["7474:7474", "7687:7687"]
+    volumes: ["neo4j:/data"]
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["minio:/data"]
+
+  redpanda:
+    image: redpandadata/redpanda:latest
+    command:
+      - redpanda start
+      - --smp 1
+      - --overprovisioned
+      - --kafka-addr PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://localhost:9092
+    ports: ["9092:9092"]
+
+volumes:
+  pg: {}
+  ts: {}
+  neo4j: {}
+  minio: {}

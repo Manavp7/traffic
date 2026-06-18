@@ -39,6 +39,12 @@ def main(argv: list[str] | None = None) -> int:
     p_perc.add_argument("--max-frames", type=int, default=120)
     p_perc.add_argument("--stride", type=int, default=3)
 
+    p_edge = sub.add_parser("edge", help="Run an Edge AI node (on-device detect + compact uplink)")
+    p_edge.add_argument("--video", default="data/samples/highway.mp4")
+    p_edge.add_argument("--source-id", default="edge-1")
+    p_edge.add_argument("--api", default=None, help="Command Center base URL to uplink to")
+    p_edge.add_argument("--max-frames", type=int, default=40)
+
     args = parser.parse_args(argv)
 
     if args.command == "info":
@@ -53,8 +59,29 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_train()
     if args.command == "perceive":
         return _cmd_perceive(args.video, args.source_id, args.max_frames, args.stride)
+    if args.command == "edge":
+        return _cmd_edge(args.video, args.source_id, args.api, args.max_frames)
 
     parser.print_help()
+    return 0
+
+
+def _cmd_edge(video: str, source_id: str, api: str | None, max_frames: int) -> int:
+    from traffic_os.edge import EdgeNode, http_sink
+
+    received: list = []
+    sink = http_sink(api) if api else received.append
+    node = EdgeNode(source_id=source_id)
+    stats = node.run(video, sink, max_frames=max_frames)
+    log.info(
+        "Edge uplink: %d frames, %.1f KB sent vs %.1f MB raw video (%.1f%% bandwidth saved)",
+        stats.frames,
+        stats.uplink_bytes / 1024,
+        stats.raw_video_bytes / 1e6,
+        stats.reduction_pct,
+    )
+    if api:
+        log.info("Uplinked compact metrics to %s/ingest/camera", api)
     return 0
 
 

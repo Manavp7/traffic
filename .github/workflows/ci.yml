@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install uv
+      - name: Create venv + install (base + dev)
+        run: |
+          uv venv .venv
+          uv pip install -p .venv -e ".[dev]"
+      - name: Ruff
+        run: .venv/bin/ruff check traffic_os tests
+      - name: Black (check)
+        run: .venv/bin/black --check traffic_os tests
+      - name: Mypy
+        run: .venv/bin/mypy traffic_os
+      - name: Pytest (ml/cv-dependent tests auto-skip without extras)
+        run: .venv/bin/pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install
+      - run: npm run build
+      - run: npm test

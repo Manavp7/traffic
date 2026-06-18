@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from traffic_os.api.runtime import AppState, get_state
 from traffic_os.common.logging import get_logger
 from traffic_os.schemas import (
+    CameraFrameMetric,
     CitizenReport,
     CityEvent,
     EmergencyType,
@@ -320,3 +321,20 @@ def reports():
 def create_report(report: CitizenReport):
     st().storage.db.upsert("citizen_report", report)
     return {"status": "received", "id": report.id}
+
+
+# --------------------------------------------------------------------------- #
+# edge AI ingest (Camera -> Edge node -> Command Center)
+# --------------------------------------------------------------------------- #
+@app.post("/ingest/camera")
+def ingest_camera(metric: CameraFrameMetric):
+    st().storage.db.upsert("camera_metric", metric)
+    return {"status": "ok", "source_id": metric.source_id, "frame": metric.frame}
+
+
+@app.get("/cameras")
+def cameras():
+    rows = st().storage.db.find(
+        "camera_metric", CameraFrameMetric, order_by_ts=True, desc=True, limit=200
+    )
+    return _ser(rows)
