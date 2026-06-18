@@ -35,8 +35,8 @@ def detect_sudden_stops(track: Track) -> list[CollisionEvent]:
                 CollisionEvent(
                     id=_new_id("SS"),
                     ts=pts[i].ts,
-                    lat=pts[i].lat,
-                    lon=pts[i].lon,
+                    lat=pts[i].lat or 0.0,
+                    lon=pts[i].lon or 0.0,
                     segment_id=track.segment_id,
                     track_ids=[track.track_id],
                     kind=CollisionKind.SUDDEN_STOP,
@@ -70,8 +70,8 @@ def detect_abnormal_motion(track: Track, net: RoadNetwork | None = None) -> list
                     CollisionEvent(
                         id=_new_id("AM"),
                         ts=p.ts,
-                        lat=p.lat,
-                        lon=p.lon,
+                        lat=p.lat or 0.0,
+                        lon=p.lon or 0.0,
                         segment_id=track.segment_id,
                         track_ids=[track.track_id],
                         kind=CollisionKind.ABNORMAL_MOTION,
@@ -90,8 +90,8 @@ def detect_abnormal_motion(track: Track, net: RoadNetwork | None = None) -> list
                 CollisionEvent(
                     id=_new_id("AM"),
                     ts=p.ts,
-                    lat=p.lat,
-                    lon=p.lon,
+                    lat=p.lat or 0.0,
+                    lon=p.lon or 0.0,
                     segment_id=track.segment_id,
                     track_ids=[track.track_id],
                     kind=CollisionKind.ABNORMAL_MOTION,
@@ -118,6 +118,10 @@ def detect_collisions(tracks: list[Track]) -> list[CollisionEvent]:
                 pb = bmap.get(pa.ts)
                 if pb is None:
                     continue
+                if None in (pa.lat, pa.lon, pb.lat, pb.lon):
+                    continue
+                assert pa.lat is not None and pa.lon is not None
+                assert pb.lat is not None and pb.lon is not None
                 dist = haversine_m(pa.lat, pa.lon, pb.lat, pb.lon)
                 if (
                     dist <= COLLISION_DIST_M

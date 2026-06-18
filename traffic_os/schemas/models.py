@@ -95,10 +95,26 @@ class Detection(BaseModel):
 
 class TrackPoint(BaseModel):
     ts: datetime
-    lat: float
-    lon: float
+    # geo coords for GPS/sim sources; may be absent for un-georegistered cameras
+    lat: float | None = None
+    lon: float | None = None
+    # pixel coords for camera sources
+    px: float | None = None
+    py: float | None = None
     speed_kph: float = 0.0
     heading_deg: float = 0.0
+
+
+class CameraFrameMetric(BaseModel):
+    id: str
+    source_id: str
+    ts: datetime
+    frame: int
+    counts: dict[str, int] = Field(default_factory=dict)
+    total_vehicles: int = 0
+    occupancy_pct: float = 0.0
+    queue_len_m: float = 0.0
+    unique_tracks: int = 0
 
 
 class Track(BaseModel):

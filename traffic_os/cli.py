@@ -31,6 +31,12 @@ def main(argv: list[str] | None = None) -> int:
     p_hist.add_argument("--days", type=int, default=14)
     p_hist.add_argument("--step-min", type=int, default=15)
 
+    p_perc = sub.add_parser("perceive", help="Run YOLO+ByteTrack perception on a video")
+    p_perc.add_argument("--video", default="data/samples/traffic.mp4")
+    p_perc.add_argument("--source-id", default="cam-1")
+    p_perc.add_argument("--max-frames", type=int, default=120)
+    p_perc.add_argument("--stride", type=int, default=3)
+
     args = parser.parse_args(argv)
 
     if args.command == "info":
@@ -41,8 +47,34 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_simulate(args.ticks, args.realtime)
     if args.command == "history":
         return _cmd_history(args.days, args.step_min)
+    if args.command == "perceive":
+        return _cmd_perceive(args.video, args.source_id, args.max_frames, args.stride)
 
     parser.print_help()
+    return 0
+
+
+def _cmd_perceive(video: str, source_id: str, max_frames: int, stride: int) -> int:
+    from traffic_os.perception import PerceptionPipeline
+    from traffic_os.storage import get_storage
+
+    st = get_storage()
+    pipe = PerceptionPipeline(st, source_id=source_id)
+    summary = pipe.run(video, max_frames=max_frames, stride=stride)
+    log.info(
+        "Perception summary: frames=%d unique_tracks=%d classes=%s",
+        summary.frames_processed,
+        summary.unique_tracks,
+        summary.class_totals,
+    )
+    log.info(
+        "Peak occupancy=%.1f%% peak_queue=%.1fm avg_vehicles/frame=%.2f",
+        summary.peak_occupancy_pct,
+        summary.peak_queue_m,
+        summary.avg_vehicles_per_frame,
+    )
+    if summary.annotated_video_key:
+        log.info("Annotated video: %s", st.blob.url(summary.annotated_video_key))
     return 0
 
 

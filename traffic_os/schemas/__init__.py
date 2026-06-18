@@ -17,6 +17,7 @@ from traffic_os.schemas.enums import (
 from traffic_os.schemas.kg import CausalFactor, KGEdge, KGNode
 from traffic_os.schemas.models import (
     AccidentRisk,
+    CameraFrameMetric,
     CitizenReport,
     CityEvent,
     CollisionEvent,
@@ -62,6 +63,7 @@ __all__ = [
     "KGNode",
     # models
     "AccidentRisk",
+    "CameraFrameMetric",
     "CitizenReport",
     "CityEvent",
     "CollisionEvent",

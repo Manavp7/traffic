@@ -12,6 +12,8 @@ data/traffic_os.db
 data/kuzu/
 data/blobs/
 data/osm/*.graphml
+data/samples/*.mp4
+data/samples/*.jpg
 *.pt
 
 # Node
