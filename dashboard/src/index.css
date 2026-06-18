@@ -89,3 +89,10 @@ button.secondary { background: var(--panel2); border-color: var(--border); color
 .suggest button { font-size:11px; padding:4px 8px; background:var(--panel2); border:1px solid var(--border); color:var(--muted); }
 .muted { color: var(--muted); }
 a { color: var(--accent); }
+
+@media print {
+  body { background: white; color: black; }
+  .topbar, .sidebar, .report-toolbar, .legend, .stat-overlay { display: none !important; }
+  .main { overflow: visible !important; }
+  .card { break-inside: avoid; border-color: #ccc; background: white; color: black; }
+}

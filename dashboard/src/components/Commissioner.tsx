@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { usePoll } from "../hooks";
-import { post, formatInr, congestionColor } from "../api";
+import { post, formatInr, congestionColor, buildReportCsv, downloadCsv } from "../api";
 
 export default function Commissioner({ net }: { net?: any }) {
   const data = usePoll<any>("/commissioner", 15000).data;
@@ -69,6 +69,13 @@ export default function Commissioner({ net }: { net?: any }) {
       </div>
 
       <div className="main" style={{ overflowY: "auto", padding: 18 }}>
+        <div className="report-toolbar" style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <button onClick={() => downloadCsv(
+            "traffic-os-commissioner-report.csv",
+            buildReportCsv(econ, economics?.breakdown || [], data?.recommendations || [])
+          )}>⬇ Export CSV</button>
+          <button className="secondary" onClick={() => window.print()}>🖨 Print / PDF</button>
+        </div>
         <div className="card" style={{ marginBottom: 16 }}>
           <h3>Accident risk — highest-risk roads</h3>
           <div style={{ height: 220 }}>
