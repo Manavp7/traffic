@@ -31,6 +31,8 @@ def main(argv: list[str] | None = None) -> int:
     p_hist.add_argument("--days", type=int, default=14)
     p_hist.add_argument("--step-min", type=int, default=15)
 
+    sub.add_parser("train", help="Train forecasting + accident-risk models on history")
+
     p_perc = sub.add_parser("perceive", help="Run YOLO+ByteTrack perception on a video")
     p_perc.add_argument("--video", default="data/samples/traffic.mp4")
     p_perc.add_argument("--source-id", default="cam-1")
@@ -47,10 +49,30 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_simulate(args.ticks, args.realtime)
     if args.command == "history":
         return _cmd_history(args.days, args.step_min)
+    if args.command == "train":
+        return _cmd_train()
     if args.command == "perceive":
         return _cmd_perceive(args.video, args.source_id, args.max_frames, args.stride)
 
     parser.print_help()
+    return 0
+
+
+def _cmd_train() -> int:
+    from traffic_os.prediction import PredictionService
+    from traffic_os.storage import get_storage
+
+    st = get_storage()
+    svc = PredictionService(st)
+    results = svc.train()
+    for h, bt in results["forecast"].items():
+        log.info("Forecast %dmin: MAE=%.2f MAPE=%.1f%% skill_vs_persistence=%.3f",
+                 h, bt["mae"], bt["mape"], bt["skill_vs_persistence"])
+    log.info("Accident-risk model AUC=%.3f", results["accident_risk_auc"])
+    svc.forecast_all(60)
+    svc.accident_risk_all()
+    log.info("Forecasts: %d | accident-risk rows: %d",
+             st.db.count("forecast"), st.db.count("accident_risk"))
     return 0
 
 
