@@ -1,8 +1,11 @@
+import { useState } from "react";
 import MapView from "./MapView";
 import Copilot from "./Copilot";
 import SignalControl from "./SignalControl";
 import { usePoll, type Live } from "../hooks";
-import { congestionColor } from "../api";
+import { congestionColor, post } from "../api";
+
+const ETYPES = ["ambulance", "fire", "police", "disaster"];
 
 const LEVEL = (s: number) => (s < 25 ? "free" : s < 50 ? "moderate" : s < 75 ? "heavy" : "severe");
 
@@ -11,6 +14,30 @@ export default function CommandCenter({ net, live }: { net?: any; live: Live }) 
   const hotspots = usePoll<any[]>("/intelligence/hotspots?n=6", 6000).data || [];
   const bottlenecks = usePoll<any[]>("/intelligence/bottlenecks?n=4", 6000).data || [];
   const recs = usePoll<any[]>("/recommendations?n=6", 8000).data || [];
+
+  // emergency corridor builder
+  const [etype, setEtype] = useState("ambulance");
+  const [picking, setPicking] = useState(false);
+  const [origin, setOrigin] = useState<{ lat: number; lon: number } | null>(null);
+  const [corridor, setCorridor] = useState<any>(null);
+
+  async function onMapClick(lat: number, lon: number) {
+    if (!picking) return;
+    if (!origin) {
+      setOrigin({ lat, lon });
+      return;
+    }
+    try {
+      const r = await post("/emergency", {
+        type: etype, lat: origin.lat, lon: origin.lon, dest_lat: lat, dest_lon: lon,
+      });
+      setCorridor(r);
+    } catch {
+      setCorridor(null);
+    }
+    setOrigin(null);
+    setPicking(false);
+  }
 
   return (
     <div className="body">
@@ -59,6 +86,8 @@ export default function CommandCenter({ net, live }: { net?: any; live: Live }) 
           congestion={live.congestion}
           vehicles={live.vehicles}
           incidents={live.incidents}
+          corridorSegments={corridor?.route_segments}
+          onMapClick={onMapClick}
         />
         <div className="stat-overlay">
           <div className="stat-pill"><div className="n">{live.tick}</div><div className="l">tick</div></div>
@@ -88,6 +117,33 @@ export default function CommandCenter({ net, live }: { net?: any; live: Live }) 
             ))}
             {!recs.length && <div className="muted">No actions needed — traffic flowing.</div>}
           </div>
+        </div>
+        <div className="card">
+          <h3>Emergency Green Corridor</h3>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <select value={etype} onChange={(e) => setEtype(e.target.value)}>
+              {ETYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <button onClick={() => { setPicking(true); setOrigin(null); setCorridor(null); }}>
+              {picking ? (origin ? "Click destination…" : "Click origin…") : "Plan corridor"}
+            </button>
+          </div>
+          {picking && <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>
+            Click two points on the map to route an emergency vehicle.
+          </div>}
+          {corridor && (
+            <div style={{ marginTop: 10 }}>
+              <div className="kpi-row">
+                <div className="kpi-box"><div className="label">Baseline ETA</div><div className="kpi small">{Math.round(corridor.baseline_eta_s)}s</div></div>
+                <div className="kpi-box"><div className="label">Corridor ETA</div><div className="kpi small" style={{ color: "var(--green)" }}>{Math.round(corridor.eta_s)}s</div></div>
+              </div>
+              <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>
+                {corridor.route_segments.length} segments · {corridor.signals_preempted.length} signals preempted ·
+                saves {Math.max(0, Math.round(corridor.baseline_eta_s - corridor.eta_s))}s
+                ({Math.round(corridor.distance_m)} m)
+              </div>
+            </div>
+          )}
         </div>
         <SignalControl />
         <Copilot />

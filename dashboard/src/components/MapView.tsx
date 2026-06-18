@@ -37,15 +37,21 @@ export default function MapView({
   congestion,
   vehicles,
   incidents,
+  corridorSegments,
+  onMapClick,
 }: {
   net?: Net;
   congestion: Record<string, number>;
   vehicles: { lat: number; lon: number; speed: number }[];
   incidents: { lat: number; lon: number; type: string }[];
+  corridorSegments?: string[];
+  onMapClick?: (lat: number, lon: number) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map>();
   const ready = useRef(false);
+  const clickCb = useRef(onMapClick);
+  clickCb.current = onMapClick;
 
   useEffect(() => {
     if (!ref.current || map.current) return;
@@ -59,6 +65,7 @@ export default function MapView({
       ready.current = true;
       map.current!.resize();
     });
+    map.current.on("click", (e) => clickCb.current?.(e.lngLat.lat, e.lngLat.lng));
     // the flex container may settle after init — keep the canvas sized correctly
     const ro = new ResizeObserver(() => map.current?.resize());
     ro.observe(ref.current);
@@ -142,6 +149,34 @@ export default function MapView({
       });
     }
   }, [incidents]);
+
+  // emergency green corridor
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready.current || !net) return;
+    const byId: Record<string, Seg> = {};
+    net.segments.forEach((s) => (byId[s.id] = s));
+    const data = {
+      type: "FeatureCollection",
+      features: (corridorSegments || [])
+        .filter((id) => byId[id])
+        .map((id) => ({
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: byId[id].geometry.map(([la, lo]) => [lo, la]) },
+        })),
+    } as any;
+    if (m.getSource("corridor")) (m.getSource("corridor") as any).setData(data);
+    else {
+      m.addSource("corridor", { type: "geojson", data });
+      m.addLayer({
+        id: "corridor",
+        type: "line",
+        source: "corridor",
+        paint: { "line-color": "#22d3ee", "line-width": 7, "line-opacity": 0.95, "line-blur": 1 },
+      });
+    }
+  }, [corridorSegments, net]);
 
   return <div className="map" ref={ref} />;
 }
