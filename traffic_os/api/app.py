@@ -450,6 +450,14 @@ def commissioner(role: str = Depends(require_commissioner)):
 # --------------------------------------------------------------------------- #
 # events / citizen reports / weather
 # --------------------------------------------------------------------------- #
+@app.get("/national")
+def national(role: str = Depends(require_commissioner)):
+    s = st()
+    if s.national is None:
+        return {"status": "warming", "cities": []}
+    return s.national.national_summary()
+
+
 @app.get("/transit")
 def transit():
     return st().transit.status()

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+from typing import Any
 
 from traffic_os.common.logging import get_logger
 from traffic_os.decision import DecisionService
@@ -62,6 +63,7 @@ class AppState:
         self.cache: dict = {}  # heavy analytics refreshed in the background
         self._refresh_interval_s = 12.0
         self.adaptive = False  # when True, the live loop re-applies adaptive signal plans
+        self.national: Any = None  # NationalService, built lazily in the warmup thread
 
     def _ensure_seeded(self, history_days: int) -> None:
         if self.storage.db.count("road_segment") == 0:
@@ -107,6 +109,8 @@ class AppState:
             snap = self.engine.step_once()
             if self.adaptive and self.engine.tick % 6 == 0:
                 self.apply_signal_plan()
+            if self.national is not None and self.engine.tick % 3 == 0:
+                self.national.step_all(1)
             self.engine.persist_live(self.storage, snap)
             await self.storage.bus.publish("live.tick", self.engine.snapshot_message(snap))
             await asyncio.sleep(self.tick_sleep_s)
@@ -141,6 +145,12 @@ class AppState:
 
         log.info("Analytics warmup starting ...")
         self._refresh_cache()
+        try:
+            from traffic_os.national import NationalService
+
+            self.national = NationalService()
+        except Exception as exc:  # pragma: no cover
+            log.warning("National service warmup failed: %s", exc)
         log.info("Analytics warmup complete")
         while not self._stop:
             time.sleep(self._refresh_interval_s)

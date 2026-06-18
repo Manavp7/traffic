@@ -8,8 +8,9 @@ import Citizen from "./components/Citizen";
 import Analytics from "./components/Analytics";
 import ThreeTwin from "./components/ThreeTwin";
 import Mobility from "./components/Mobility";
+import National from "./components/National";
 
-type View = "command" | "commissioner" | "analytics" | "twin" | "mobility" | "citizen";
+type View = "command" | "commissioner" | "national" | "analytics" | "twin" | "mobility" | "citizen";
 
 export default function App() {
   const [view, setView] = useState<View>("command");
@@ -42,6 +43,9 @@ export default function App() {
           <div className={`tab ${view === "commissioner" ? "active" : ""}`} onClick={() => setView("commissioner")}>
             Commissioner
           </div>
+          <div className={`tab ${view === "national" ? "active" : ""}`} onClick={() => setView("national")}>
+            National
+          </div>
           <div className={`tab ${view === "analytics" ? "active" : ""}`} onClick={() => setView("analytics")}>
             Analytics
           </div>
@@ -58,6 +62,7 @@ export default function App() {
       </div>
       {view === "command" && <CommandCenter net={net} live={live} />}
       {view === "commissioner" && <Commissioner net={net} />}
+      {view === "national" && <National />}
       {view === "analytics" && <Analytics />}
       {view === "twin" && <div className="body"><div className="main"><ThreeTwin net={net} live={live} /></div></div>}
       {view === "mobility" && <Mobility />}
