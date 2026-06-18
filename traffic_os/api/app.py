@@ -155,6 +155,55 @@ def incidents():
     return _ser(rows)
 
 
+@app.get("/alerts")
+def alerts():
+    """Operational alerts: active incidents, high accident-risk, severe congestion."""
+    s = st()
+    _rank = {"critical": 0, "high": 1, "medium": 2}
+    out: list[dict] = []
+
+    for inc in s.storage.db.find("incident", Incident, where={"status": "active"}):
+        out.append(
+            {
+                "severity": "critical" if inc.severity > 0.7 else "high",
+                "kind": "incident",
+                "message": f"{inc.type.value.title()} on {inc.description or inc.segment_id}",
+                "lat": inc.lat,
+                "lon": inc.lon,
+                "ts": inc.ts.isoformat(),
+            }
+        )
+
+    for h in s.intelligence.hotspots(top_n=8):
+        if h.congestion >= 75:
+            out.append(
+                {
+                    "severity": "high",
+                    "kind": "congestion",
+                    "message": f"Severe congestion at {h.name} ({h.congestion:.0f}/100)",
+                    "lat": h.lat,
+                    "lon": h.lon,
+                    "ts": None,
+                }
+            )
+
+    for r in s.cache.get("risk", []):
+        if r.get("risk_pct", 0) >= 70:
+            out.append(
+                {
+                    "severity": "medium",
+                    "kind": "risk",
+                    "message": f"Accident risk {r['risk_pct']:.0f}% on {r['segment_id']}",
+                    "lat": None,
+                    "lon": None,
+                    "ts": r.get("ts"),
+                }
+            )
+
+    out.sort(key=lambda a: _rank.get(a["severity"], 9))
+    return out
+
+
 # --------------------------------------------------------------------------- #
 # prediction
 # --------------------------------------------------------------------------- #

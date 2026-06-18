@@ -14,6 +14,11 @@ export default function CommandCenter({ net, live }: { net?: any; live: Live }) 
   const hotspots = usePoll<any[]>("/intelligence/hotspots?n=6", 6000).data || [];
   const bottlenecks = usePoll<any[]>("/intelligence/bottlenecks?n=4", 6000).data || [];
   const recs = usePoll<any[]>("/recommendations?n=6", 8000).data || [];
+  const alerts = usePoll<any[]>("/alerts", 5000).data || [];
+
+  const sevColor: Record<string, string> = {
+    critical: "#ef4444", high: "#f97316", medium: "#eab308",
+  };
 
   // emergency corridor builder
   const [etype, setEtype] = useState("ambulance");
@@ -42,6 +47,18 @@ export default function CommandCenter({ net, live }: { net?: any; live: Live }) 
   return (
     <div className="body">
       <div className="sidebar left">
+        {alerts.length > 0 && (
+          <div className="card">
+            <h3>⚠ Alerts ({alerts.length})</h3>
+            <div className="list">
+              {alerts.slice(0, 6).map((a, i) => (
+                <div className="row" key={i} style={{ borderLeft: `3px solid ${sevColor[a.severity] || "#888"}` }}>
+                  <div style={{ fontSize: 12 }}>{a.message}<div className="meta">{a.kind} · {a.severity}</div></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="card">
           <h3>Network status</h3>
           <div className="kpi" style={{ color: congestionColor(summary?.avg_congestion ?? 0) }}>
