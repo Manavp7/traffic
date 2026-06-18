@@ -67,8 +67,27 @@ infra/            docker-compose + migrations
 docs/             architecture, runbook, roadmap, edge-ai, api
 ```
 
-See `docs/` for architecture details and the roadmap mapping every remaining vision module to a
-concrete future task.
+## Dashboard views
+
+The React + MapLibre dashboard ships seven role-aware views:
+**Command Center** (live map, hotspots, bottlenecks, alerts, cameras, smart-signal apply,
+emergency green corridor, AI recommendations, Copilot) · **Commissioner** (economic loss,
+accident-risk, forecast, infrastructure what-if, CSV/PDF export) · **National** (multi-city
+rollup) · **Analytics** (historical trends + diurnal profile) · **3D Twin** (Three.js) ·
+**Mobility** (public transport + freight) · **Citizen** (PWA: report / live / route).
+
+## Notable capabilities (built)
+
+- Real **YOLO11 + ByteTrack** perception; **triple-riding** vision violation; **road-health**
+  pothole detection; **edge AI** node (compact uplink).
+- **Knowledge-graph** causal reasoning; **LLM Copilot** (function-calling) with offline fallback.
+- **Forecasting** + **accident-risk**; **adaptive max-pressure signals** (+ optional DQN);
+  **emergency corridors**; **economic loss** (₹/day) + **infrastructure what-if** simulator;
+  **AI recommendations**.
+- **Auth + RBAC** (API key, roles, audit log); **production adapters** (PostGIS, Neo4j, Redis,
+  MinIO, Kafka); **multi-city / national** rollup; **real OSM** networks (`seed --osm`).
+
+See `docs/` for architecture details and `docs/roadmap.md` for delivered vs future work.
 
 ## License
 

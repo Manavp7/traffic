@@ -27,10 +27,22 @@ FastAPI gateway (`traffic_os/api/app.py`). Interactive docs at `/docs` (OpenAPI 
 | GET | `/kg/why?junction=` | Causal explanation for a junction |
 | GET | `/kg/stats` | Knowledge-graph node/edge counts |
 | POST | `/copilot` | Natural-language Q&A (`{"question": "..."}`) |
-| GET | `/commissioner` | Aggregate KPIs for decision-makers |
+| GET | `/commissioner` | Aggregate KPIs for decision-makers (commissioner role) |
 | GET/POST | `/reports` | Citizen reports (list / create) |
 | POST | `/ingest/camera` | Edge-node metric uplink |
 | GET | `/cameras` | Recent camera metrics |
 | GET | `/events` | City events |
+| GET | `/copilot/health` | Copilot mode (llm/deterministic) + tools |
+| POST | `/signals/apply` | Apply adaptive plan to live sim (commissioner) |
+| POST | `/signals/auto` | Toggle continuous adaptive control (commissioner) |
+| GET | `/signals/rl/evaluate` | Optional DQN vs fixed/max-pressure (commissioner) |
+| GET | `/alerts` | Operational alerts (incidents / risk / severe congestion) |
+| GET | `/analytics/timeseries` `/analytics/profile` | Historical analytics |
+| GET | `/road-health` | Road-health (pothole) issues |
+| GET | `/cameras/registry`, POST `/cameras/register`, `/cameras/{id}/ingest` | Multi-camera |
+| GET | `/transit` `/freight` | Public-transport + freight intelligence |
+| GET | `/national` | Multi-city national rollup (commissioner) |
+| GET | `/audit` | RBAC audit log (commissioner) |
 
-Auth: optional API key via `TOS_API_KEY`. LLM Copilot via `TOS_LLM_API_KEY` (else deterministic).
+Auth: optional API key via `TOS_API_KEY` (header `X-API-Key`); role via header `X-Role`
+(`operator`|`commissioner`). LLM Copilot via `TOS_LLM_API_KEY` (else deterministic router).
