@@ -478,6 +478,40 @@ def cameras():
     return _ser(rows)
 
 
+class CameraRegisterRequest(BaseModel):
+    id: str
+    name: str
+    source: str
+    lat: float | None = None
+    lon: float | None = None
+    junction_id: str | None = None
+
+
+@app.get("/cameras/registry")
+def cameras_registry():
+    from traffic_os.schemas import Camera
+
+    return _ser(st().storage.db.find("camera", Camera, limit=500))
+
+
+@app.post("/cameras/register")
+def cameras_register(camera: CameraRegisterRequest, role: str = Depends(require_commissioner)):
+    from traffic_os.schemas import Camera
+
+    cam = Camera(**camera.model_dump())
+    st().cameras.register(cam)
+    audit("camera.register", {"id": cam.id, "source": cam.source}, role)
+    return _ser(cam)
+
+
+@app.post("/cameras/{camera_id}/ingest")
+def cameras_ingest(camera_id: str, max_frames: int = 20, role: str = Depends(require_commissioner)):
+    try:
+        return st().cameras.ingest_once(camera_id, max_frames=max_frames)
+    except KeyError as err:
+        raise HTTPException(404, "camera not found") from err
+
+
 @app.get("/road-health")
 def road_health():
     from traffic_os.schemas import RoadHealthIssue

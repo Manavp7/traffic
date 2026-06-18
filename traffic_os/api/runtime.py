@@ -39,6 +39,10 @@ class AppState:
         self.recommendation = RecommendationEngine(
             self.storage, self.intelligence, kg=self.kg, prediction=self.prediction
         )
+        from traffic_os.edge import CameraManager
+
+        self.cameras = CameraManager(self.storage)
+
         from traffic_os.copilot import CopilotService
 
         self.copilot = CopilotService(

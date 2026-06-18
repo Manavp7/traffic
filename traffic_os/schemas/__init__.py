@@ -19,6 +19,7 @@ from traffic_os.schemas.kg import CausalFactor, KGEdge, KGNode
 from traffic_os.schemas.models import (
     AccidentRisk,
     AuditLog,
+    Camera,
     CameraFrameMetric,
     CitizenReport,
     CityEvent,
@@ -68,6 +69,7 @@ __all__ = [
     # models
     "AccidentRisk",
     "AuditLog",
+    "Camera",
     "CameraFrameMetric",
     "CitizenReport",
     "CityEvent",

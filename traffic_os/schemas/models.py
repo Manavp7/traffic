@@ -114,6 +114,16 @@ class AuditLog(BaseModel):
     detail: dict[str, Any] = Field(default_factory=dict)
 
 
+class Camera(BaseModel):
+    id: str
+    name: str
+    source: str  # RTSP URL or local video file path
+    lat: float | None = None
+    lon: float | None = None
+    junction_id: str | None = None
+    status: str = "registered"  # registered | online | offline
+
+
 class RoadHealthIssue(BaseModel):
     id: str
     source_id: str

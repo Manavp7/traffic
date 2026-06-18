@@ -15,6 +15,7 @@ export default function CommandCenter({ net, live }: { net?: any; live: Live }) 
   const bottlenecks = usePoll<any[]>("/intelligence/bottlenecks?n=4", 6000).data || [];
   const recs = usePoll<any[]>("/recommendations?n=6", 8000).data || [];
   const alerts = usePoll<any[]>("/alerts", 5000).data || [];
+  const cameras = usePoll<any[]>("/cameras", 6000).data || [];
 
   const sevColor: Record<string, string> = {
     critical: "#ef4444", high: "#f97316", medium: "#eab308",
@@ -83,6 +84,19 @@ export default function CommandCenter({ net, live }: { net?: any; live: Live }) 
           </div>
         </div>
 
+        {cameras.length > 0 && (
+          <div className="card">
+            <h3>📹 Cameras (edge AI)</h3>
+            <div className="list">
+              {cameras.slice(0, 6).map((c) => (
+                <div className="row" key={c.id}>
+                  <div>{c.source_id}<div className="meta">occ {c.occupancy_pct}% · queue {c.queue_len_m}m</div></div>
+                  <span className="badge" style={{ background: "var(--panel2)" }}>{c.total_vehicles} veh</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="card">
           <h3>Bottlenecks (root cause)</h3>
           <div className="list">
