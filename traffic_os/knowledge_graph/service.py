@@ -37,9 +37,15 @@ class KnowledgeGraphService:
             "causes": [f.model_dump() for f in factors],
         }
 
-    def neighbors(self, node_type: str, node_id: str, edge_type: str | None = None, direction: str = "both"):
-        res = self.storage.graph.neighbors(node_type, node_id, edge_type=edge_type, direction=direction)
-        return [{"edge": e.type, "node_type": n.type, "node_id": n.id, "props": n.props} for e, n in res]
+    def neighbors(
+        self, node_type: str, node_id: str, edge_type: str | None = None, direction: str = "both"
+    ):
+        res = self.storage.graph.neighbors(
+            node_type, node_id, edge_type=edge_type, direction=direction
+        )
+        return [
+            {"edge": e.type, "node_type": n.type, "node_id": n.id, "props": n.props} for e, n in res
+        ]
 
     def stats(self) -> dict[str, int]:
         return self.storage.graph.stats()

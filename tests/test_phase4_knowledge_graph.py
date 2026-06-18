@@ -52,23 +52,36 @@ def _seed_scenario(storage):
     storage.db.upsert(
         "incident",
         Incident(
-            id="INC-1", ts=ref, type=IncidentType.ACCIDENT,
-            lat=net.junctions[junction].lat, lon=net.junctions[junction].lon,
-            segment_id=blocked_road, severity=0.9, segments_blocked=[blocked_road],
-            status=IncidentStatus.ACTIVE, description="Accident",
+            id="INC-1",
+            ts=ref,
+            type=IncidentType.ACCIDENT,
+            lat=net.junctions[junction].lat,
+            lon=net.junctions[junction].lon,
+            segment_id=blocked_road,
+            severity=0.9,
+            segments_blocked=[blocked_road],
+            status=IncidentStatus.ACTIVE,
+            description="Accident",
         ),
     )
     storage.db.upsert(
         "weather",
-        Weather(ts=ref, kind=WeatherKind.HEAVY_RAIN, rain_mm=30, visibility_m=2000, capacity_factor=0.65),
+        Weather(
+            ts=ref, kind=WeatherKind.HEAVY_RAIN, rain_mm=30, visibility_m=2000, capacity_factor=0.65
+        ),
     )
     storage.db.upsert(
         "city_event",
         CityEvent(
-            id="EV-1", type=EventType.CONCERT, name="Live Concert",
-            venue_lat=net.junctions[junction].lat, venue_lon=net.junctions[junction].lon,
-            start=ref - timedelta(minutes=30), end=ref + timedelta(minutes=30),
-            expected_attendance=40000, nearest_junction=junction,
+            id="EV-1",
+            type=EventType.CONCERT,
+            name="Live Concert",
+            venue_lat=net.junctions[junction].lat,
+            venue_lon=net.junctions[junction].lon,
+            start=ref - timedelta(minutes=30),
+            end=ref + timedelta(minutes=30),
+            expected_attendance=40000,
+            nearest_junction=junction,
         ),
     )
     sig = net.signal_for_junction(junction)

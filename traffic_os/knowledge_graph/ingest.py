@@ -53,8 +53,13 @@ class KGIngestor:
                 KGNode(
                     type=NodeType.JUNCTION,
                     id=jid,
-                    props={"name": jn.name, "lat": jn.lat, "lon": jn.lon,
-                           "has_signal": jn.has_signal, "congestion": cong},
+                    props={
+                        "name": jn.name,
+                        "lat": jn.lat,
+                        "lon": jn.lon,
+                        "has_signal": jn.has_signal,
+                        "congestion": cong,
+                    },
                 )
             )
 
@@ -66,7 +71,8 @@ class KGIngestor:
                     type=NodeType.ROAD,
                     id=sid,
                     props={
-                        "name": seg.name, "lanes": seg.lanes,
+                        "name": seg.name,
+                        "lanes": seg.lanes,
                         "speed_limit": seg.speed_limit_kph,
                         "congestion": m.congestion_score if m else 0.0,
                         "speed": m.speed_kph if m else seg.speed_limit_kph,
@@ -75,20 +81,43 @@ class KGIngestor:
                     },
                 )
             )
-            self.graph.upsert_edge(KGEdge(type=EdgeType.FROM, src_type=NodeType.ROAD, src_id=sid,
-                                          dst_type=NodeType.JUNCTION, dst_id=seg.from_junction))
-            self.graph.upsert_edge(KGEdge(type=EdgeType.TO, src_type=NodeType.ROAD, src_id=sid,
-                                          dst_type=NodeType.JUNCTION, dst_id=seg.to_junction))
+            self.graph.upsert_edge(
+                KGEdge(
+                    type=EdgeType.FROM,
+                    src_type=NodeType.ROAD,
+                    src_id=sid,
+                    dst_type=NodeType.JUNCTION,
+                    dst_id=seg.from_junction,
+                )
+            )
+            self.graph.upsert_edge(
+                KGEdge(
+                    type=EdgeType.TO,
+                    src_type=NodeType.ROAD,
+                    src_id=sid,
+                    dst_type=NodeType.JUNCTION,
+                    dst_id=seg.to_junction,
+                )
+            )
 
         # signals
         for sig in net.signals.values():
             self.graph.upsert_node(
-                KGNode(type=NodeType.SIGNAL, id=sig.id,
-                       props={"junction": sig.junction_id, "fault": sig.id in faulted_signals})
+                KGNode(
+                    type=NodeType.SIGNAL,
+                    id=sig.id,
+                    props={"junction": sig.junction_id, "fault": sig.id in faulted_signals},
+                )
             )
-            self.graph.upsert_edge(KGEdge(type=EdgeType.CONTROLS, src_type=NodeType.SIGNAL,
-                                          src_id=sig.id, dst_type=NodeType.JUNCTION,
-                                          dst_id=sig.junction_id))
+            self.graph.upsert_edge(
+                KGEdge(
+                    type=EdgeType.CONTROLS,
+                    src_type=NodeType.SIGNAL,
+                    src_id=sig.id,
+                    dst_type=NodeType.JUNCTION,
+                    dst_id=sig.junction_id,
+                )
+            )
 
         # incidents
         n_inc = 0
@@ -97,15 +126,28 @@ class KGIngestor:
                 continue
             n_inc += 1
             self.graph.upsert_node(
-                KGNode(type=NodeType.INCIDENT, id=inc.id,
-                       props={"itype": inc.type.value, "severity": inc.severity,
-                              "status": inc.status.value, "blocked": bool(inc.segments_blocked),
-                              "description": inc.description})
+                KGNode(
+                    type=NodeType.INCIDENT,
+                    id=inc.id,
+                    props={
+                        "itype": inc.type.value,
+                        "severity": inc.severity,
+                        "status": inc.status.value,
+                        "blocked": bool(inc.segments_blocked),
+                        "description": inc.description,
+                    },
+                )
             )
             if inc.segment_id:
-                self.graph.upsert_edge(KGEdge(type=EdgeType.OCCURRED_ON, src_type=NodeType.INCIDENT,
-                                              src_id=inc.id, dst_type=NodeType.ROAD,
-                                              dst_id=inc.segment_id))
+                self.graph.upsert_edge(
+                    KGEdge(
+                        type=EdgeType.OCCURRED_ON,
+                        src_type=NodeType.INCIDENT,
+                        src_id=inc.id,
+                        dst_type=NodeType.ROAD,
+                        dst_id=inc.segment_id,
+                    )
+                )
                 # mark road blocked
                 if inc.segments_blocked:
                     rn = self.graph.get_node(NodeType.ROAD, inc.segment_id)
@@ -116,24 +158,43 @@ class KGIngestor:
         # weather (single 'current' node) affecting all junctions implicitly
         if weather is not None:
             self.graph.upsert_node(
-                KGNode(type=NodeType.WEATHER, id="current",
-                       props={"kind": weather.kind.value, "rain_mm": weather.rain_mm,
-                              "capacity_factor": weather.capacity_factor,
-                              "visibility_m": weather.visibility_m})
+                KGNode(
+                    type=NodeType.WEATHER,
+                    id="current",
+                    props={
+                        "kind": weather.kind.value,
+                        "rain_mm": weather.rain_mm,
+                        "capacity_factor": weather.capacity_factor,
+                        "visibility_m": weather.visibility_m,
+                    },
+                )
             )
 
         # events
         for ev in events:
             self.graph.upsert_node(
-                KGNode(type=NodeType.EVENT, id=ev.id,
-                       props={"etype": ev.type.value, "name": ev.name,
-                              "attendance": ev.expected_attendance,
-                              "start": ev.start.isoformat(), "end": ev.end.isoformat()})
+                KGNode(
+                    type=NodeType.EVENT,
+                    id=ev.id,
+                    props={
+                        "etype": ev.type.value,
+                        "name": ev.name,
+                        "attendance": ev.expected_attendance,
+                        "start": ev.start.isoformat(),
+                        "end": ev.end.isoformat(),
+                    },
+                )
             )
             if ev.nearest_junction:
-                self.graph.upsert_edge(KGEdge(type=EdgeType.NEAR, src_type=NodeType.EVENT,
-                                              src_id=ev.id, dst_type=NodeType.JUNCTION,
-                                              dst_id=ev.nearest_junction))
+                self.graph.upsert_edge(
+                    KGEdge(
+                        type=EdgeType.NEAR,
+                        src_type=NodeType.EVENT,
+                        src_id=ev.id,
+                        dst_type=NodeType.JUNCTION,
+                        dst_id=ev.nearest_junction,
+                    )
+                )
 
         stats = self.graph.stats()
         log.info("KG synced: %s (incidents=%d, events=%d)", stats, n_inc, len(events))
@@ -147,6 +208,10 @@ class KGIngestor:
         weathers = storage.db.find("weather", Weather, order_by_ts=True, desc=True, limit=1)
         events = storage.db.find("city_event", CityEvent, limit=200)
         return self.sync(
-            net, metrics, incidents, weathers[0] if weathers else None, events,
+            net,
+            metrics,
+            incidents,
+            weathers[0] if weathers else None,
+            events,
             faulted_signals=faulted_signals,
         )
