@@ -450,6 +450,16 @@ def commissioner(role: str = Depends(require_commissioner)):
 # --------------------------------------------------------------------------- #
 # events / citizen reports / weather
 # --------------------------------------------------------------------------- #
+@app.get("/transit")
+def transit():
+    return st().transit.status()
+
+
+@app.get("/freight")
+def freight(n: int = 8):
+    return st().freight.plan(n=n)
+
+
 @app.get("/events")
 def events():
     return _ser(st().storage.db.find("city_event", CityEvent, limit=200))

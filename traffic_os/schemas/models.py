@@ -114,6 +114,25 @@ class AuditLog(BaseModel):
     detail: dict[str, Any] = Field(default_factory=dict)
 
 
+class BusRoute(BaseModel):
+    id: str
+    name: str
+    segments: list[str] = Field(default_factory=list)
+    stops: list[str] = Field(default_factory=list)  # junction ids
+
+
+class FreightTrip(BaseModel):
+    id: str
+    origin: str
+    destination: str
+    segments: list[str] = Field(default_factory=list)
+    distance_m: float = 0.0
+    eta_s: float = 0.0
+    free_flow_s: float = 0.0
+    fuel_litres: float = 0.0
+    cost_inr: float = 0.0
+
+
 class Camera(BaseModel):
     id: str
     name: str

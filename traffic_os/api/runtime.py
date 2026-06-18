@@ -40,8 +40,11 @@ class AppState:
             self.storage, self.intelligence, kg=self.kg, prediction=self.prediction
         )
         from traffic_os.edge import CameraManager
+        from traffic_os.mobility import FreightService, TransitService
 
         self.cameras = CameraManager(self.storage)
+        self.transit = TransitService(self.storage)
+        self.freight = FreightService(self.storage)
 
         from traffic_os.copilot import CopilotService
 
