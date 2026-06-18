@@ -308,6 +308,15 @@ class AutoSignalRequest(BaseModel):
     enabled: bool
 
 
+@app.get("/signals/rl/evaluate")
+def signals_rl_evaluate(episodes: int = 100, role: str = Depends(require_commissioner)):
+    """Optional: train a single-junction DQN and compare vs fixed/max-pressure."""
+    from traffic_os.decision.rl import train_and_evaluate
+
+    res = train_and_evaluate(episodes=episodes)
+    return res.__dict__
+
+
 @app.post("/signals/auto")
 def signals_auto(req: AutoSignalRequest, role: str = Depends(require_commissioner)):
     s = st()

@@ -14,7 +14,9 @@ from traffic_os.storage import memory_storage
 def test_camera_registry():
     st = memory_storage()
     mgr = CameraManager(st)
-    mgr.register(Camera(id="cam-1", name="MG Road", source="data/samples/highway.mp4", lat=12.97, lon=77.6))
+    mgr.register(
+        Camera(id="cam-1", name="MG Road", source="data/samples/highway.mp4", lat=12.97, lon=77.6)
+    )
     mgr.register(Camera(id="cam-2", name="Silk Board", source="rtsp://example/stream"))
     cams = mgr.list_cameras()
     assert {c.id for c in cams} == {"cam-1", "cam-2"}
