@@ -282,6 +282,11 @@ def copilot(req: CopilotRequest):
     return st().copilot.ask(req.question)
 
 
+@app.get("/copilot/health")
+def copilot_health():
+    return st().copilot.health()
+
+
 # --------------------------------------------------------------------------- #
 # commissioner aggregate
 # --------------------------------------------------------------------------- #

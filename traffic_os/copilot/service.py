@@ -29,6 +29,24 @@ class CopilotService:
             recommendation=recommendation,
         )
 
+    @property
+    def mode(self) -> str:
+        return "llm" if self.settings.llm_api_key else "deterministic"
+
+    def health(self) -> dict:
+        return {
+            "mode": self.mode,
+            "model": self.settings.llm_model if self.settings.llm_api_key else None,
+            "base_url": self.settings.llm_base_url if self.settings.llm_api_key else None,
+            "tools": [t["function"]["name"] for t in self._tool_specs()],
+        }
+
+    def _make_client(self):
+        """Create the LLM HTTP client (overridable in tests via monkeypatch)."""
+        import httpx
+
+        return httpx.Client(base_url=self.settings.llm_base_url, timeout=30)
+
     def ask(self, question: str) -> dict:
         if self.settings.llm_api_key:
             try:
@@ -203,8 +221,6 @@ class CopilotService:
     def _ask_llm(self, question: str) -> dict:
         import json
 
-        import httpx
-
         s = self.settings
         sys = (
             "You are the Traffic-OS Copilot for a city traffic command center. "
@@ -214,7 +230,7 @@ class CopilotService:
         headers = {"Authorization": f"Bearer {s.llm_api_key}"}
         used_tool = None
         used_data: dict = {}
-        with httpx.Client(base_url=s.llm_base_url, timeout=30) as client:
+        with self._make_client() as client:
             for _ in range(4):
                 resp = client.post(
                     "/chat/completions",
