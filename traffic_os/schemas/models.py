@@ -16,6 +16,7 @@ from traffic_os.schemas.enums import (
     IncidentStatus,
     IncidentType,
     ReportType,
+    RoadHealthKind,
     ScenarioOp,
     SignalMode,
     ViolationType,
@@ -103,6 +104,19 @@ class TrackPoint(BaseModel):
     py: float | None = None
     speed_kph: float = 0.0
     heading_deg: float = 0.0
+
+
+class RoadHealthIssue(BaseModel):
+    id: str
+    source_id: str
+    ts: datetime
+    kind: RoadHealthKind
+    bbox: tuple[float, float, float, float] | None = None
+    lat: float | None = None
+    lon: float | None = None
+    confidence: float = 0.5
+    severity: float = 0.5  # 0..1
+    method: str = "cv-heuristic"  # or "model:<name>"
 
 
 class CameraFrameMetric(BaseModel):

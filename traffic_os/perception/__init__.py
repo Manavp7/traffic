@@ -3,6 +3,11 @@
 from traffic_os.perception.detector import COCO_TO_CLASS, RawDetection, YOLODetector
 from traffic_os.perception.metrics import counts_by_class, occupancy_pct, queue_length_m
 from traffic_os.perception.pipeline import PerceptionPipeline, PerceptionSummary
+from traffic_os.perception.road_health import (
+    RoadHealthModel,
+    detect_potholes_cv,
+    scan_video,
+)
 
 __all__ = [
     "YOLODetector",
@@ -13,4 +18,7 @@ __all__ = [
     "counts_by_class",
     "occupancy_pct",
     "queue_length_m",
+    "RoadHealthModel",
+    "detect_potholes_cv",
+    "scan_video",
 ]

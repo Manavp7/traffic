@@ -412,3 +412,13 @@ def cameras():
         "camera_metric", CameraFrameMetric, order_by_ts=True, desc=True, limit=200
     )
     return _ser(rows)
+
+
+@app.get("/road-health")
+def road_health():
+    from traffic_os.schemas import RoadHealthIssue
+
+    rows = st().storage.db.find(
+        "road_health", RoadHealthIssue, order_by_ts=True, desc=True, limit=500
+    )
+    return _ser(rows)

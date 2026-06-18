@@ -104,6 +104,12 @@ class ActionType(str, Enum):
     ALERT = "alert"
 
 
+class RoadHealthKind(str, Enum):
+    POTHOLE = "pothole"
+    CRACK = "crack"
+    WATERLOGGING = "waterlogging"
+
+
 class ScenarioOp(str, Enum):
     ADD_FLYOVER = "add_flyover"
     WIDEN_LANE = "widen_lane"
