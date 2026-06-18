@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Data / generated artifacts
+data/traffic_os.db
+data/kuzu/
+data/blobs/
+data/osm/*.graphml
+*.pt
+
+# Node
+node_modules/
+dashboard/dist/
+dashboard/.vite/
+
+# Env
+.env
+.env.local
+
+# OS
+.DS_Store

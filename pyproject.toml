@@ -1,0 +1,86 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "traffic-os"
+version = "0.1.0"
+description = "National Traffic Intelligence Operating System — Detect, Predict, Recommend, Simulate, Optimize"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Traffic-OS" }]
+
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "shapely>=2.0",
+    "networkx>=3.2",
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "httpx>=0.27",
+    "python-multipart>=0.0.9",
+    "websockets>=12.0",
+    "orjson>=3.9",
+    "kuzu>=0.4",
+]
+
+[project.optional-dependencies]
+ml = [
+    "scikit-learn>=1.4",
+    "xgboost>=2.0",
+    "lightgbm>=4.3",
+]
+cv = [
+    "ultralytics>=8.2",
+    "opencv-python-headless>=4.9",
+    "torch>=2.2",
+]
+geo = [
+    "osmnx>=1.9",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "black>=24.0",
+    "mypy>=1.9",
+    "fakeredis>=2.21",
+]
+
+[project.scripts]
+traffic-os = "traffic_os.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["traffic_os"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM"]
+ignore = ["B008", "C901", "E501", "UP042"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = false
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.uv]
+package = true
