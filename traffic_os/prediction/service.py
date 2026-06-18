@@ -20,12 +20,15 @@ DEFAULT_HORIZONS = (15, 30, 60)
 
 class PredictionService:
     def __init__(self, storage) -> None:
+        import threading
+
         self.storage = storage
         self._net: RoadNetwork | None = None
         self.frame: pd.DataFrame | None = None
         self.models: dict[int, ForecastModel] = {}
         self.risk = RiskModel()
         self.backtests: dict[int, dict] = {}
+        self._lock = threading.RLock()
 
     @property
     def net(self) -> RoadNetwork:
@@ -34,19 +37,20 @@ class PredictionService:
         return self._net
 
     def train(self, horizons: tuple[int, ...] = DEFAULT_HORIZONS) -> dict:
-        self.frame = load_frame(self.storage, self.net)
-        if self.frame.empty:
-            raise ValueError("no history to train on; run `history` first")
-        results = {}
-        for h in horizons:
-            fm = ForecastModel(h)
-            bt = fm.backtest(self.frame)
-            fm.train(self.frame)
-            self.models[h] = fm
-            self.backtests[h] = bt.__dict__
-            results[h] = bt.__dict__
-        self.risk.train(self.frame)
-        return {"forecast": results, "accident_risk_auc": self.risk.auc}
+        with self._lock:
+            self.frame = load_frame(self.storage, self.net)
+            if self.frame.empty:
+                raise ValueError("no history to train on; run `history` first")
+            results = {}
+            for h in horizons:
+                fm = ForecastModel(h)
+                bt = fm.backtest(self.frame)
+                fm.train(self.frame)
+                self.models[h] = fm
+                self.backtests[h] = bt.__dict__
+                results[h] = bt.__dict__
+            self.risk.train(self.frame)
+            return {"forecast": results, "accident_risk_auc": self.risk.auc}
 
     # -- forecasting ------------------------------------------------------ #
     def _latest_rows(self) -> pd.DataFrame:
@@ -136,5 +140,6 @@ class PredictionService:
         return risks[:n]
 
     def _ensure_trained(self) -> None:
-        if not self.models or self.frame is None:
-            self.train()
+        with self._lock:
+            if not self.models or self.frame is None:
+                self.train()
