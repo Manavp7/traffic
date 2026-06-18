@@ -54,6 +54,7 @@ class AppState:
         self.tick_sleep_s = 1.0  # wall-clock seconds between simulated ticks
         self.cache: dict = {}  # heavy analytics refreshed in the background
         self._refresh_interval_s = 12.0
+        self.adaptive = False  # when True, the live loop re-applies adaptive signal plans
 
     def _ensure_seeded(self, history_days: int) -> None:
         if self.storage.db.count("road_segment") == 0:
@@ -67,10 +68,38 @@ class AppState:
                 net, self.storage.db, days=history_days, step_min=15, seed=self.settings.sim_seed
             )
 
+    def apply_signal_plan(self) -> list[dict]:
+        """Compute an adaptive max-pressure plan from live metrics and apply it live."""
+        from traffic_os.decision.adaptive_signal import compute_signal_plan, plan_to_overrides
+        from traffic_os.intelligence.current import current_metrics
+
+        metrics = current_metrics(self.storage.db)
+        plan = compute_signal_plan(self.engine.net, metrics)
+        for sid, durations in plan_to_overrides(plan).items():
+            self.engine.signals.set_green_durations(sid, durations)
+        return [
+            {
+                "signal_id": sp.signal_id,
+                "junction_id": sp.junction_id,
+                "phases": [
+                    {
+                        "phase_id": pp.phase_id,
+                        "green_s": pp.green_s,
+                        "current_green_s": pp.current_green_s,
+                        "pressure": pp.pressure,
+                    }
+                    for pp in sp.phases
+                ],
+            }
+            for sp in plan
+        ]
+
     async def _loop(self) -> None:
         log.info("Live simulation loop started")
         while not self._stop:
             snap = self.engine.step_once()
+            if self.adaptive and self.engine.tick % 6 == 0:
+                self.apply_signal_plan()
             self.engine.persist_live(self.storage, snap)
             await self.storage.bus.publish("live.tick", self.engine.snapshot_message(snap))
             await asyncio.sleep(self.tick_sleep_s)

@@ -195,6 +195,26 @@ def signals_evaluate():
     return st().decision.evaluate_signal_strategy(ticks=150, warmup=45)
 
 
+@app.post("/signals/apply")
+def signals_apply():
+    """Apply an adaptive max-pressure plan to the live simulation right now."""
+    plan = st().apply_signal_plan()
+    return {"applied": len(plan), "plan": plan}
+
+
+class AutoSignalRequest(BaseModel):
+    enabled: bool
+
+
+@app.post("/signals/auto")
+def signals_auto(req: AutoSignalRequest):
+    s = st()
+    s.adaptive = req.enabled
+    if req.enabled:
+        s.apply_signal_plan()
+    return {"adaptive": s.adaptive}
+
+
 class EmergencyRequest(BaseModel):
     type: EmergencyType = EmergencyType.AMBULANCE
     lat: float

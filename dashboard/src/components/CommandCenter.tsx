@@ -1,5 +1,6 @@
 import MapView from "./MapView";
 import Copilot from "./Copilot";
+import SignalControl from "./SignalControl";
 import { usePoll, type Live } from "../hooks";
 import { congestionColor } from "../api";
 
@@ -88,6 +89,7 @@ export default function CommandCenter({ net, live }: { net?: any; live: Live }) 
             {!recs.length && <div className="muted">No actions needed — traffic flowing.</div>}
           </div>
         </div>
+        <SignalControl />
         <Copilot />
       </div>
     </div>
