@@ -21,7 +21,9 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command")
 
     sub.add_parser("info", help="Print environment/storage info")
-    sub.add_parser("seed", help="Build and persist the road network")
+    p_seed = sub.add_parser("seed", help="Build and persist the road network")
+    p_seed.add_argument("--osm", action="store_true", help="Use a real OpenStreetMap network")
+    p_seed.add_argument("--place", default=None, help="OSM place name (with --osm)")
 
     p_sim = sub.add_parser("simulate", help="Run the live simulation for N ticks")
     p_sim.add_argument("--ticks", type=int, default=120)
@@ -50,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "info":
         return _cmd_info()
     if args.command == "seed":
-        return _cmd_seed()
+        return _cmd_seed(getattr(args, "osm", False), getattr(args, "place", None))
     if args.command == "simulate":
         return _cmd_simulate(args.ticks, args.realtime)
     if args.command == "history":
@@ -150,11 +152,15 @@ def _cmd_info() -> int:
     return 0
 
 
-def _cmd_seed() -> int:
+def _cmd_seed(use_osm: bool = False, place: str | None = None) -> int:
     from traffic_os.simulation import build_network_from_settings, save_network
     from traffic_os.storage import get_storage
 
     st = get_storage()
+    if use_osm:
+        st.settings.sim_use_osm = True
+        if place:
+            st.settings.sim_place = place
     net = build_network_from_settings(st.settings)
     save_network(net, st.db)
     log.info(

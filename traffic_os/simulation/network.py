@@ -164,12 +164,35 @@ def _build_signals(net: RoadNetwork) -> None:
         sig_no += 1
 
 
-def build_osm_network(place: str) -> RoadNetwork:
-    """Build a network from OpenStreetMap via osmnx (requires the ``geo`` extra)."""
+def build_osm_network(place: str, cache_dir=None) -> RoadNetwork:
+    """Build a network from OpenStreetMap via osmnx (requires the ``geo`` extra).
+
+    The downloaded graph is cached to ``cache_dir/<slug>.graphml`` and reused on
+    subsequent runs so the network is built once and works offline thereafter.
+    """
+    import re
+    from pathlib import Path
+
     import osmnx as ox  # local import: optional dependency
 
-    log.info("Downloading OSM drive network for %r ...", place)
-    g = ox.graph_from_place(place, network_type="drive", simplify=True)
+    g = None
+    cache_file = None
+    if cache_dir is not None:
+        cache_dir = Path(cache_dir)
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        slug = re.sub(r"[^a-z0-9]+", "-", place.lower()).strip("-")
+        cache_file = cache_dir / f"{slug}.graphml"
+        if cache_file.exists():
+            log.info("Loading cached OSM network from %s", cache_file)
+            g = ox.load_graphml(cache_file)
+
+    if g is None:
+        log.info("Downloading OSM drive network for %r ...", place)
+        g = ox.graph_from_place(place, network_type="drive", simplify=True)
+        if cache_file is not None:
+            ox.save_graphml(g, cache_file)
+            log.info("Cached OSM network to %s", cache_file)
+
     g = ox.project_graph(g, to_crs="epsg:4326")
 
     net = RoadNetwork()
@@ -269,7 +292,7 @@ def load_network(db) -> RoadNetwork:
 def build_network_from_settings(settings) -> RoadNetwork:
     if settings.sim_use_osm:
         try:
-            return build_osm_network(settings.sim_place)
-        except Exception as exc:  # pragma: no cover
+            return build_osm_network(settings.sim_place, cache_dir=settings.data_dir / "osm")
+        except Exception as exc:
             log.warning("OSM build failed (%s); falling back to synthetic grid", exc)
     return build_grid_network(settings.sim_grid_size)
