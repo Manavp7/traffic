@@ -26,9 +26,12 @@ def client():
     runtime.set_state(None)  # type: ignore[arg-type]
 
 
+COMMISSIONER = {"X-Role": "commissioner"}
+
+
 def test_apply_changes_live_signals(client):
     c, state = client
-    r = c.post("/signals/apply").json()
+    r = c.post("/signals/apply", headers=COMMISSIONER).json()
     assert r["applied"] == len(state.engine.net.signals)
     assert r["plan"] and "phases" in r["plan"][0]
     # at least one signal received green overrides applied to the live controller
@@ -38,7 +41,13 @@ def test_apply_changes_live_signals(client):
 
 def test_auto_toggle(client):
     c, state = client
-    assert c.post("/signals/auto", json={"enabled": True}).json()["adaptive"] is True
+    assert (
+        c.post("/signals/auto", json={"enabled": True}, headers=COMMISSIONER).json()["adaptive"]
+        is True
+    )
     assert state.adaptive is True
-    assert c.post("/signals/auto", json={"enabled": False}).json()["adaptive"] is False
+    assert (
+        c.post("/signals/auto", json={"enabled": False}, headers=COMMISSIONER).json()["adaptive"]
+        is False
+    )
     assert state.adaptive is False

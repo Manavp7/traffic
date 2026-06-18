@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { setRole, getRole } from "./api";
 import { useNetwork, useLive } from "./hooks";
 import CommandCenter from "./components/CommandCenter";
 import Commissioner from "./components/Commissioner";
@@ -9,8 +11,16 @@ type View = "command" | "commissioner" | "analytics" | "citizen";
 
 export default function App() {
   const [view, setView] = useState<View>("command");
+  const [role, setRoleState] = useState(getRole());
+  const qc = useQueryClient();
   const { data: net } = useNetwork();
   const live = useLive();
+
+  function changeRole(r: string) {
+    setRole(r);
+    setRoleState(r);
+    qc.invalidateQueries();
+  }
 
   return (
     <div className="app">
@@ -18,6 +28,11 @@ export default function App() {
         <h1>Traffic-OS <span className="tag">· National Traffic Intelligence OS</span></h1>
         <div className="muted" style={{ fontSize: 12 }}>Detect · Predict · Recommend · Simulate · Optimize</div>
         <div className="spacer" />
+        <select value={role} onChange={(e) => changeRole(e.target.value)} title="Role (RBAC)"
+                style={{ marginRight: 10 }}>
+          <option value="commissioner">Commissioner</option>
+          <option value="operator">Operator</option>
+        </select>
         <div className="tabs">
           <div className={`tab ${view === "command" ? "active" : ""}`} onClick={() => setView("command")}>
             Command Center

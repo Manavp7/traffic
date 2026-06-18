@@ -106,6 +106,14 @@ class TrackPoint(BaseModel):
     heading_deg: float = 0.0
 
 
+class AuditLog(BaseModel):
+    id: str
+    ts: datetime
+    role: str
+    action: str
+    detail: dict[str, Any] = Field(default_factory=dict)
+
+
 class RoadHealthIssue(BaseModel):
     id: str
     source_id: str

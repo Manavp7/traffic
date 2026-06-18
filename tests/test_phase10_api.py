@@ -102,6 +102,7 @@ def test_planning_scenario(client):
     seg = net["segments"][0]["id"]
     r = client.post(
         "/planning/scenario",
+        headers={"X-Role": "commissioner"},
         json={
             "id": "t1",
             "name": "Widen",

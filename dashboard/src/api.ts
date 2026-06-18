@@ -1,9 +1,20 @@
 export const API_BASE =
   (import.meta as any).env?.VITE_API_URL || "http://localhost:8000";
+const API_KEY = (import.meta as any).env?.VITE_API_KEY || "";
+
+let currentRole = "commissioner";
+export function setRole(r: string) { currentRole = r; }
+export function getRole() { return currentRole; }
+
+function authHeaders(): Record<string, string> {
+  const h: Record<string, string> = { "content-type": "application/json", "X-Role": currentRole };
+  if (API_KEY) h["X-API-Key"] = API_KEY;
+  return h;
+}
 
 export async function api<T = any>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "content-type": "application/json" },
+    headers: authHeaders(),
     ...init,
   });
   if (!res.ok) throw new Error(`${path} -> ${res.status}`);
@@ -11,7 +22,7 @@ export async function api<T = any>(path: string, init?: RequestInit): Promise<T>
 }
 
 export function post<T = any>(path: string, body: unknown): Promise<T> {
-  return api<T>(path, { method: "POST", body: JSON.stringify(body) });
+  return api<T>(path, { method: "POST", headers: authHeaders(), body: JSON.stringify(body) });
 }
 
 export function wsUrl(): string {

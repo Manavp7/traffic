@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { usePoll } from "../hooks";
-import { post, formatInr, congestionColor, buildReportCsv, downloadCsv } from "../api";
+import { post, formatInr, congestionColor, buildReportCsv, downloadCsv, getRole } from "../api";
 
 export default function Commissioner({ net }: { net?: any }) {
   const data = usePoll<any>("/commissioner", 15000).data;
@@ -28,6 +28,19 @@ export default function Commissioner({ net }: { net?: any }) {
     } finally {
       setRunning(false);
     }
+  }
+
+  if (getRole() !== "commissioner") {
+    return (
+      <div className="body">
+        <div className="main" style={{ padding: 40 }}>
+          <div className="card"><h3>Access restricted</h3>
+            <div className="muted">The Commissioner dashboard requires the <b>Commissioner</b> role.
+            Switch role in the top-right to view economic loss, accident risk and planning tools.</div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const econ = economics?.summary || {};

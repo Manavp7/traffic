@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import dataclasses
+import uuid
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from traffic_os.api.runtime import AppState, get_state
 from traffic_os.common.logging import get_logger
+from traffic_os.common.timeutil import utcnow
 from traffic_os.schemas import (
     CameraFrameMetric,
     CitizenReport,
@@ -35,6 +37,44 @@ def _ser(obj: Any) -> Any:
     return obj
 
 
+def st() -> AppState:
+    return get_state()
+
+
+# --------------------------------------------------------------------------- #
+# auth + RBAC
+# --------------------------------------------------------------------------- #
+_PUBLIC_PATHS = {"/healthz", "/docs", "/openapi.json", "/redoc", "/ws"}
+
+
+def check_api_key(request: Request, x_api_key: str | None = Header(default=None)) -> None:
+    """Enforce an API key when one is configured (no-op in dev when unset)."""
+    key = st().settings.api_key
+    if key and request.url.path not in _PUBLIC_PATHS and x_api_key != key:
+        raise HTTPException(status_code=401, detail="invalid or missing API key")
+
+
+def get_role(x_role: str = Header(default="operator")) -> str:
+    return x_role.lower()
+
+
+def require_commissioner(role: str = Depends(get_role)) -> str:
+    if role != "commissioner":
+        raise HTTPException(status_code=403, detail="commissioner role required")
+    return role
+
+
+def audit(action: str, detail: dict, role: str = "system") -> None:
+    from traffic_os.schemas import AuditLog
+
+    st().storage.db.upsert(
+        "audit_log",
+        AuditLog(
+            id=f"AUD-{uuid.uuid4().hex[:8]}", ts=utcnow(), role=role, action=action, detail=detail
+        ),
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     state = get_state()
@@ -49,6 +89,7 @@ app = FastAPI(
     version="0.1.0",
     description="National Traffic Intelligence Operating System",
     lifespan=lifespan,
+    dependencies=[Depends(check_api_key)],
 )
 app.add_middleware(
     CORSMiddleware,
@@ -56,10 +97,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-def st() -> AppState:
-    return get_state()
 
 
 # --------------------------------------------------------------------------- #
@@ -260,9 +297,10 @@ def signals_evaluate():
 
 
 @app.post("/signals/apply")
-def signals_apply():
+def signals_apply(role: str = Depends(require_commissioner)):
     """Apply an adaptive max-pressure plan to the live simulation right now."""
     plan = st().apply_signal_plan()
+    audit("signals.apply", {"applied": len(plan)}, role)
     return {"applied": len(plan), "plan": plan}
 
 
@@ -271,11 +309,12 @@ class AutoSignalRequest(BaseModel):
 
 
 @app.post("/signals/auto")
-def signals_auto(req: AutoSignalRequest):
+def signals_auto(req: AutoSignalRequest, role: str = Depends(require_commissioner)):
     s = st()
     s.adaptive = req.enabled
     if req.enabled:
         s.apply_signal_plan()
+    audit("signals.auto", {"enabled": req.enabled}, role)
     return {"adaptive": s.adaptive}
 
 
@@ -324,8 +363,10 @@ def economics():
 
 
 @app.post("/planning/scenario")
-def planning_scenario(scenario: InfraScenario):
-    return _ser(st().planning.run_scenario(scenario))
+def planning_scenario(scenario: InfraScenario, role: str = Depends(require_commissioner)):
+    result = st().planning.run_scenario(scenario)
+    audit("planning.scenario", {"scenario": scenario.name}, role)
+    return _ser(result)
 
 
 # --------------------------------------------------------------------------- #
@@ -371,11 +412,19 @@ def copilot_health():
     return st().copilot.health()
 
 
+@app.get("/audit")
+def audit_log(role: str = Depends(require_commissioner)):
+    from traffic_os.schemas import AuditLog
+
+    rows = st().storage.db.find("audit_log", AuditLog, order_by_ts=True, desc=True, limit=200)
+    return _ser(rows)
+
+
 # --------------------------------------------------------------------------- #
 # commissioner aggregate
 # --------------------------------------------------------------------------- #
 @app.get("/commissioner")
-def commissioner():
+def commissioner(role: str = Depends(require_commissioner)):
     s = st()
     cache = s.cache
     return {
