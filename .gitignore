@@ -9,7 +9,9 @@ __pycache__/
 
 # Data / generated artifacts
 data/traffic_os.db
+data/kuzu
 data/kuzu/
+data/kuzu.wal
 data/blobs/
 data/osm/*.graphml
 data/samples/*.mp4
