@@ -56,3 +56,58 @@ class MemoryEventBus(EventBus):
     def _unsubscribe(self, topic: str, sub: _MemorySubscription) -> None:
         if topic in self._subs and sub in self._subs[topic]:
             self._subs[topic].remove(sub)
+
+
+class _KafkaSubscription(Subscription):
+    def __init__(self, bootstrap: str, topic: str) -> None:
+        import json
+        import threading
+
+        from kafka import KafkaConsumer  # optional dependency
+
+        self._queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        self._loop = asyncio.get_event_loop()
+        self._consumer = KafkaConsumer(
+            topic,
+            bootstrap_servers=bootstrap,
+            auto_offset_reset="latest",
+            value_deserializer=lambda b: json.loads(b.decode()),
+        )
+        self._stop = False
+
+        def _poll() -> None:
+            for msg in self._consumer:
+                if self._stop:
+                    break
+                self._loop.call_soon_threadsafe(self._queue.put_nowait, msg.value)
+
+        threading.Thread(target=_poll, daemon=True).start()
+
+    async def __aiter__(self):  # type: ignore[override]
+        while True:
+            yield await self._queue.get()
+
+    def close(self) -> None:
+        self._stop = True
+        self._consumer.close()
+
+
+class KafkaEventBus(EventBus):
+    """Production event bus backed by Kafka / Redpanda."""
+
+    def __init__(self, bootstrap: str) -> None:
+        import json
+
+        from kafka import KafkaProducer  # optional dependency
+
+        self.bootstrap = bootstrap
+        self.producer = KafkaProducer(
+            bootstrap_servers=bootstrap,
+            value_serializer=lambda v: json.dumps(v).encode(),
+        )
+
+    async def publish(self, topic: str, message: dict[str, Any]) -> None:
+        self.producer.send(topic, message)
+
+    def subscribe(self, topic: str) -> _KafkaSubscription:
+        return _KafkaSubscription(self.bootstrap, topic)

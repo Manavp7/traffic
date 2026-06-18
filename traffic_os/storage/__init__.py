@@ -49,6 +49,41 @@ def _build_graph(settings: Settings) -> KnowledgeGraph:
         return NetworkxGraph()
 
 
+def _prod_blob(settings: Settings) -> BlobStore:
+    try:
+        from traffic_os.storage.blob import MinioBlobStore
+
+        return MinioBlobStore(
+            settings.minio_endpoint,
+            settings.minio_access_key,
+            settings.minio_secret_key,
+            settings.minio_bucket,
+        )
+    except Exception as exc:  # pragma: no cover
+        log.warning("MinIO unavailable (%s); using filesystem blobs", exc)
+        return FsBlobStore(settings.blob_dir)
+
+
+def _prod_cache(settings: Settings) -> Cache:
+    try:
+        from traffic_os.storage.cache import RedisCache
+
+        return RedisCache(settings.redis_url)
+    except Exception as exc:  # pragma: no cover
+        log.warning("Redis unavailable (%s); using in-memory cache", exc)
+        return MemoryCache()
+
+
+def _prod_bus(settings: Settings) -> EventBus:
+    try:
+        from traffic_os.storage.eventbus import KafkaEventBus
+
+        return KafkaEventBus(settings.kafka_bootstrap)
+    except Exception as exc:  # pragma: no cover
+        log.warning("Kafka unavailable (%s); using in-memory bus", exc)
+        return MemoryEventBus()
+
+
 _singleton: Storage | None = None
 
 
@@ -63,14 +98,20 @@ def get_storage(settings: Settings | None = None, *, fresh: bool = False) -> Sto
 
     if settings.mode == "prod":
         db: Database = SqlDatabase.postgres(settings.postgres_dsn)
+        blob: BlobStore = _prod_blob(settings)
+        cache: Cache = _prod_cache(settings)
+        bus: EventBus = _prod_bus(settings)
     else:
         db = SqlDatabase.sqlite(str(settings.sqlite_path))
+        blob = FsBlobStore(settings.blob_dir)
+        cache = MemoryCache()
+        bus = MemoryEventBus()
 
     storage = Storage(
         db=db,
-        blob=FsBlobStore(settings.blob_dir),
-        cache=MemoryCache(),
-        bus=MemoryEventBus(),
+        blob=blob,
+        cache=cache,
+        bus=bus,
         graph=_build_graph(settings),
         settings=settings,
     )

@@ -27,3 +27,33 @@ class FsBlobStore(BlobStore):
 
     def url(self, key: str) -> str:
         return f"/blobs/{key}"
+
+
+class MinioBlobStore(BlobStore):
+    """Production blob store backed by MinIO / S3."""
+
+    def __init__(
+        self, endpoint: str, access_key: str, secret_key: str, bucket: str, secure: bool = False
+    ) -> None:
+        from minio import Minio  # optional dependency
+
+        self.client = Minio(endpoint, access_key=access_key, secret_key=secret_key, secure=secure)
+        self.bucket = bucket
+        if not self.client.bucket_exists(bucket):
+            self.client.make_bucket(bucket)
+
+    def put(self, key: str, data: bytes) -> str:
+        import io
+
+        self.client.put_object(self.bucket, key, io.BytesIO(data), length=len(data))
+        return self.url(key)
+
+    def get(self, key: str) -> bytes | None:
+        try:
+            resp = self.client.get_object(self.bucket, key)
+            return resp.read()
+        except Exception:
+            return None
+
+    def url(self, key: str) -> str:
+        return f"s3://{self.bucket}/{key}"
