@@ -85,6 +85,7 @@ class MicroSim:
         demand_scale: float = 7.0,
         probe_ratio: float = 0.12,
         track_history: int = 40,
+        directional_bias: float = 0.45,
     ) -> None:
         self.net = net
         self.signals = signals
@@ -92,6 +93,7 @@ class MicroSim:
         self.demand_scale = demand_scale
         self.probe_ratio = probe_ratio
         self.track_history = track_history
+        self.directional_bias = directional_bias
 
         self.vehicles: dict[str, Vehicle] = {}
         self.tracks: dict[str, Track] = {}
@@ -101,6 +103,7 @@ class MicroSim:
         self._route_cache: dict[tuple[str, str], list[str]] = {}
         self._junctions = list(net.junctions)
         self._central = self._central_junctions()
+        self._art_src, self._art_dst = self._arterial_corridor()
 
     # -- graph / routing -------------------------------------------------- #
     def _build_graph(self) -> nx.DiGraph:
@@ -122,6 +125,32 @@ class MicroSim:
         )
         k = max(1, len(ranked) // 6)
         return [j.id for j in ranked[:k]]
+
+    def _arterial_corridor(self) -> tuple[list[str], list[str]]:
+        """West/East endpoints of the central arterial row (grid only).
+
+        Heavy west->east demand along this corridor creates the directional
+        imbalance that adaptive signal control exploits. Empty for non-grid nets.
+        """
+        rows, cols = set(), set()
+        for jid in self.net.junctions:
+            if not jid.startswith("J") or "_" not in jid:
+                return [], []
+            try:
+                r, c = (int(x) for x in jid[1:].split("_"))
+            except ValueError:
+                return [], []
+            rows.add(r)
+            cols.add(c)
+        if not rows or not cols:
+            return [], []
+        mid = sorted(rows)[len(rows) // 2]
+        maxc = max(cols)
+        west = [f"J{mid}_{0}", f"J{mid}_{1}"]
+        east = [f"J{mid}_{maxc}", f"J{mid}_{maxc - 1}"]
+        west = [j for j in west if j in self.net.junctions]
+        east = [j for j in east if j in self.net.junctions]
+        return west, east
 
     def _route(self, src: str, dst: str) -> list[str]:
         key = (src, dst)
@@ -155,12 +184,17 @@ class MicroSim:
     def spawn(self, n: int) -> int:
         spawned = 0
         for _ in range(n):
-            src = self.rng.choice(self._junctions)
-            dst = (
-                self.rng.choice(self._central)
-                if self.rng.random() < 0.55
-                else self.rng.choice(self._junctions)
-            )
+            if self._art_src and self._art_dst and self.rng.random() < self.directional_bias:
+                # heavy directional arterial flow (west -> east) — asymmetric load
+                src = self.rng.choice(self._art_src)
+                dst = self.rng.choice(self._art_dst)
+            else:
+                src = self.rng.choice(self._junctions)
+                dst = (
+                    self.rng.choice(self._central)
+                    if self.rng.random() < 0.55
+                    else self.rng.choice(self._junctions)
+                )
             if src == dst:
                 continue
             route = self._route(src, dst)

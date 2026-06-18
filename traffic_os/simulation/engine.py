@@ -45,6 +45,10 @@ class LiveSnapshot:
     signal_states: list[SignalState]
     tracks: list[Track] = field(default_factory=list)
     active_vehicles: int = 0
+    exited: int = 0
+    spawned: int = 0
+    cum_exited: int = 0
+    mean_speed_kph: float = 0.0
 
 
 class SimulationEngine:
@@ -58,12 +62,19 @@ class SimulationEngine:
         self.settings = settings or get_settings()
         self.net = net
         self.signals = SignalController(net)
-        self.micro = MicroSim(net, self.signals, seed=self.settings.sim_seed)
+        self.micro = MicroSim(
+            net,
+            self.signals,
+            seed=self.settings.sim_seed,
+            demand_scale=self.settings.sim_demand_scale,
+            directional_bias=self.settings.sim_directional_bias,
+        )
         self.incidents = IncidentManager(net, seed=self.settings.sim_seed + 1)
         self.dt = float(self.settings.sim_tick_seconds)
         # start clock at a busy morning hour so demos are lively
         self.ts = start or utcnow().replace(hour=9, minute=0, second=0, microsecond=0)
         self.tick = 0
+        self.cum_exited = 0
         self._rng = self.micro.rng
         self.events: list[CityEvent] = []
         self._weather = weather_at(self.ts, self._rng)
@@ -101,6 +112,10 @@ class SimulationEngine:
         tracks = [
             self.micro.tracks[tid] for tid in step.probe_track_ids if tid in self.micro.tracks
         ]
+        self.cum_exited += step.exited
+        mean_speed = (
+            sum(m.speed_kph for m in step.metrics) / len(step.metrics) if step.metrics else 0.0
+        )
         return LiveSnapshot(
             tick=self.tick,
             ts=self.ts,
@@ -110,6 +125,10 @@ class SimulationEngine:
             signal_states=self.signals.states(),
             tracks=tracks,
             active_vehicles=step.active_vehicles,
+            exited=step.exited,
+            spawned=step.spawned,
+            cum_exited=self.cum_exited,
+            mean_speed_kph=round(mean_speed, 2),
         )
 
     def persist(self, storage, snap: LiveSnapshot) -> None:

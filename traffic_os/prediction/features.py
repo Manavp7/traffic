@@ -49,8 +49,10 @@ def load_frame(storage, net: RoadNetwork) -> pd.DataFrame:
     weathers = storage.db.find("weather", Weather, limit=100000)
     if weathers:
         wdf = pd.DataFrame(
-            [{"wts": w.ts, "capacity_factor": w.capacity_factor, "rain_mm": w.rain_mm}
-             for w in weathers]
+            [
+                {"wts": w.ts, "capacity_factor": w.capacity_factor, "rain_mm": w.rain_mm}
+                for w in weathers
+            ]
         )
         wdf["wts"] = pd.to_datetime(wdf["wts"], utc=True).dt.floor("h")
         wdf = wdf.drop_duplicates("wts")
@@ -80,16 +82,29 @@ def load_frame(storage, net: RoadNetwork) -> pd.DataFrame:
 
 
 FORECAST_FEATURES = [
-    "hour_sin", "hour_cos", "dow", "is_weekend",
-    "capacity_factor", "rain_mm",
-    "lanes", "speed_limit", "importance",
-    "congestion", "speed", "density", "occupancy", "queue",
+    "hour_sin",
+    "hour_cos",
+    "dow",
+    "is_weekend",
+    "capacity_factor",
+    "rain_mm",
+    "lanes",
+    "speed_limit",
+    "importance",
+    "congestion",
+    "speed",
+    "density",
+    "occupancy",
+    "queue",
     *[f"lag_{lag}" for lag in LAGS],
-    "roll_mean", "roll_std",
+    "roll_mean",
+    "roll_std",
 ]
 
 
-def make_supervised(df: pd.DataFrame, horizon_steps: int) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
+def make_supervised(
+    df: pd.DataFrame, horizon_steps: int
+) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
     """Return (X, y, ts) for predicting congestion ``horizon_steps`` ahead."""
     df = df.copy()
     df["target"] = df.groupby("segment_id")["congestion"].shift(-horizon_steps)

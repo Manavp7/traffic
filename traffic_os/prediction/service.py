@@ -69,9 +69,13 @@ class PredictionService:
         pred, lo, hi = self._event_adjust(segment_id, feat["ts"], pred, lo, hi, horizon_min)
         ts_made = pd.Timestamp(feat["ts"]).to_pydatetime()
         return Forecast(
-            segment_id=segment_id, horizon_min=horizon_min, ts_made=ts_made,
+            segment_id=segment_id,
+            horizon_min=horizon_min,
+            ts_made=ts_made,
             ts_target=ts_made + timedelta(minutes=horizon_min),
-            predicted_congestion=round(pred, 1), ci_low=round(lo, 1), ci_high=round(hi, 1),
+            predicted_congestion=round(pred, 1),
+            ci_low=round(lo, 1),
+            ci_high=round(hi, 1),
             model="xgboost",
         )
 
@@ -97,7 +101,9 @@ class PredictionService:
         events = self.storage.db.find("city_event", CityEvent, limit=200)
         for ev in events:
             near = ev.nearest_junction in (seg.from_junction, seg.to_junction)
-            active = ev.start - timedelta(hours=1) <= target.replace(tzinfo=ev.start.tzinfo) <= ev.end
+            active = (
+                ev.start - timedelta(hours=1) <= target.replace(tzinfo=ev.start.tzinfo) <= ev.end
+            )
             if near and active:
                 boost = min(25.0, ev.expected_attendance / 2000.0)
                 return min(100, pred + boost), min(100, lo + boost), min(100, hi + boost)

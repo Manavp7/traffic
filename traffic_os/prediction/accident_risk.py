@@ -22,9 +22,7 @@ from traffic_os.simulation.microsim import JAM_DENSITY_PER_LANE
 
 log = get_logger("prediction.risk")
 
-RISK_FEATURES = [
-    "rain_norm", "density_norm", "speed_ratio", "occupancy_norm", "peak", "importance"
-]
+RISK_FEATURES = ["rain_norm", "density_norm", "speed_ratio", "occupancy_norm", "peak", "importance"]
 
 
 def _sigmoid(x):
@@ -72,8 +70,13 @@ class RiskModel:
         from xgboost import XGBClassifier
 
         return XGBClassifier(
-            n_estimators=160, max_depth=5, learning_rate=0.1,
-            subsample=0.9, colsample_bytree=0.9, n_jobs=4, random_state=7,
+            n_estimators=160,
+            max_depth=5,
+            learning_rate=0.1,
+            subsample=0.9,
+            colsample_bytree=0.9,
+            n_jobs=4,
+            random_state=7,
             eval_metric="logloss",
         )
 
@@ -92,7 +95,9 @@ class RiskModel:
             proba = self.model.predict_proba(X.iloc[split:])[:, 1]
             self.auc = round(float(roc_auc_score(y[split:], proba)), 3)
         self.positive_rate = round(float(y.mean()), 3)
-        log.info("Accident-risk model trained: AUC=%.3f pos_rate=%.3f", self.auc, self.positive_rate)
+        log.info(
+            "Accident-risk model trained: AUC=%.3f pos_rate=%.3f", self.auc, self.positive_rate
+        )
         return self
 
     def predict_pct(self, feat_row: dict) -> tuple[float, dict[str, float]]:

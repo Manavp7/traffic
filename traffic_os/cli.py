@@ -66,13 +66,21 @@ def _cmd_train() -> int:
     svc = PredictionService(st)
     results = svc.train()
     for h, bt in results["forecast"].items():
-        log.info("Forecast %dmin: MAE=%.2f MAPE=%.1f%% skill_vs_persistence=%.3f",
-                 h, bt["mae"], bt["mape"], bt["skill_vs_persistence"])
+        log.info(
+            "Forecast %dmin: MAE=%.2f MAPE=%.1f%% skill_vs_persistence=%.3f",
+            h,
+            bt["mae"],
+            bt["mape"],
+            bt["skill_vs_persistence"],
+        )
     log.info("Accident-risk model AUC=%.3f", results["accident_risk_auc"])
     svc.forecast_all(60)
     svc.accident_risk_all()
-    log.info("Forecasts: %d | accident-risk rows: %d",
-             st.db.count("forecast"), st.db.count("accident_risk"))
+    log.info(
+        "Forecasts: %d | accident-risk rows: %d",
+        st.db.count("forecast"),
+        st.db.count("accident_risk"),
+    )
     return 0
 
 

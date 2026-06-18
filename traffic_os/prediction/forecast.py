@@ -42,9 +42,14 @@ class ForecastModel:
         from xgboost import XGBRegressor
 
         return XGBRegressor(
-            n_estimators=200, max_depth=6, learning_rate=0.1,
-            subsample=0.9, colsample_bytree=0.9, n_jobs=4,
-            random_state=42, objective="reg:squarederror",
+            n_estimators=200,
+            max_depth=6,
+            learning_rate=0.1,
+            subsample=0.9,
+            colsample_bytree=0.9,
+            n_jobs=4,
+            random_state=42,
+            objective="reg:squarederror",
         )
 
     def train(self, df: pd.DataFrame) -> ForecastModel:
@@ -55,8 +60,12 @@ class ForecastModel:
         self.model.fit(X, y)
         pred = self.model.predict(X)
         self.resid_std = float(np.std(y - pred)) or 8.0
-        log.info("Forecast model trained: horizon=%dmin rows=%d resid_std=%.2f",
-                 self.horizon_min, len(X), self.resid_std)
+        log.info(
+            "Forecast model trained: horizon=%dmin rows=%d resid_std=%.2f",
+            self.horizon_min,
+            len(X),
+            self.resid_std,
+        )
         return self
 
     def backtest(self, df: pd.DataFrame, test_frac: float = 0.2) -> BacktestResult:
@@ -77,8 +86,11 @@ class ForecastModel:
         persist_mae = float(np.mean(np.abs(persist - yte.values)))
         skill = 1 - mae / persist_mae if persist_mae else 0.0
         return BacktestResult(
-            horizon_min=self.horizon_min, mae=round(mae, 2), mape=round(mape, 2),
-            persistence_mae=round(persist_mae, 2), skill_vs_persistence=round(skill, 3),
+            horizon_min=self.horizon_min,
+            mae=round(mae, 2),
+            mape=round(mape, 2),
+            persistence_mae=round(persist_mae, 2),
+            skill_vs_persistence=round(skill, 3),
             n_test=len(Xte),
         )
 

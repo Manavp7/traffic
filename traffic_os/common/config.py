@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     sim_grid_size: int = 6  # NxN synthetic grid when not using OSM
     sim_tick_seconds: int = 5  # simulated seconds per tick
     sim_seed: int = 42
+    sim_demand_scale: float = 80.0  # vehicles spawned per tick at peak
+    sim_directional_bias: float = 0.45  # share of trips along the main arterial corridor
 
     # --- Economics (configurable factors) ---
     value_of_time_inr_per_hour: float = 150.0  # INR per vehicle-hour of delay
