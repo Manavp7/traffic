@@ -640,6 +640,25 @@ def zones_enforce(role: str = Depends(require_commissioner)):
     return {"issued": len(issued), "challans": _ser(issued)}
 
 
+@app.get("/safety/near-miss")
+def safety_near_miss():
+    from traffic_os.safety import detect_near_misses
+    from traffic_os.schemas import Track
+
+    tracks = st().storage.db.find("track", Track, limit=2000)
+    return detect_near_misses(tracks)
+
+
+@app.get("/safety/driver-scores")
+def safety_driver_scores(n: int = 20):
+    from traffic_os.safety import driver_scores
+    from traffic_os.schemas import Track
+
+    s = st()
+    tracks = s.storage.db.find("track", Track, limit=2000)
+    return driver_scores(tracks, s.intelligence.net)[:n]
+
+
 @app.get("/road-health")
 def road_health():
     from traffic_os.schemas import RoadHealthIssue
