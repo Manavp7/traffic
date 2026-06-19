@@ -27,9 +27,8 @@ def score_track(track: Track, net: RoadNetwork | None = None) -> dict:
         limit = net.segments[track.segment_id].speed_limit_kph
     if limit:
         speeding = sum(1 for p in pts if p.speed_kph > limit * SPEEDING_TOLERANCE)
-    n = max(len(pts), 1)
-    # weighted risk score 0..100 (higher = worse)
-    score = min(100.0, (harsh * 18 + weave * 10 + speeding * 8) / n * 100 / max(1, 4))
+    # weighted risk score 0..100 from absolute event counts (robust to short tracks)
+    score = min(100.0, harsh * 15.0 + weave * 8.0 + speeding * 6.0)
     return {
         "track_id": track.track_id,
         "class": track.cls,

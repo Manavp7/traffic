@@ -43,6 +43,21 @@ FastAPI gateway (`traffic_os/api/app.py`). Interactive docs at `/docs` (OpenAPI 
 | GET | `/transit` `/freight` | Public-transport + freight intelligence |
 | GET | `/national` | Multi-city national rollup (commissioner) |
 | GET | `/audit` | RBAC audit log (commissioner) |
+| POST/GET | `/enforcement/challans*` | Issue/list e-Challans + evidence verify + status |
+| GET/POST | `/enforcement/watchlist*` | Stolen/blacklist plates + live scan |
+| GET/POST | `/enforcement/zones*` | Enforcement zones + auto-issue |
+| GET | `/safety/near-miss` `/safety/driver-scores` | VRU near-miss + driver scoring |
+| GET | `/sustainability*` | AQI, dynamic pricing, EV demand, carbon |
+| GET | `/parking` `/parking/nearest` `/planner` | Smart parking + multimodal planner |
+| POST | `/dispatch` `/evacuation` `/convoy` | Auto-dispatch, evacuation, VIP convoy |
+| GET | `/intelligence/anomalies` `/intelligence/kpis` `/replay` | Anomalies, KPIs/SLA, history replay |
+| GET | `/signals/abtest` | Signal policy A/B test (significance) |
+| GET/POST | `/planning/scenarios` `/planning/roi` | Scenario library + ROI/payback |
+| GET | `/integrations/status` | Data-connector providers |
+| POST/GET | `/notify*` `/notifications` | Citizen notifications + geofence |
+| GET | `/metrics` | Prometheus metrics (public) |
+| POST | `/auth/token` | Issue JWT (role) |
+| GET | `/opendata/network.geojson` `/opendata/incidents.geojson` | Public open data |
 
 Auth: optional API key via `TOS_API_KEY` (header `X-API-Key`); role via header `X-Role`
 (`operator`|`commissioner`). LLM Copilot via `TOS_LLM_API_KEY` (else deterministic router).

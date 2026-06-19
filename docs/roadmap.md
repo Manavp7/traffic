@@ -23,6 +23,19 @@ of the original backlog. This page tracks what is **delivered** vs what remains 
 - **Multi-city / national** rollup.
 - **Optional VideoMAE** accident classifier with tracking-based fallback.
 
+## Delivered in expansion 2 (F1–J6)
+- **Enforcement**: ANPR + e-Challan with tamper-evident evidence locker (SHA-256 + chain-of-custody),
+  stolen/blacklist watchlist, enforcement zones + auto-evidence, VRU near-miss, driver-behavior scoring.
+- **Sustainability**: AQI + health impact, dynamic congestion pricing (revenue + diversion),
+  EV charging demand + grid load, carbon / net-zero tracking.
+- **Mobility**: smart parking, multimodal trip planner, incident auto-dispatch, disaster evacuation,
+  VIP/convoy rolling green-wave.
+- **Decision intelligence**: scenario library + ROI/payback, signal A/B testing (Welch t-test),
+  anomaly detection (z-score), KPI/SLA + history replay, voice + multilingual (EN/HI) Copilot.
+- **Platform**: data-connector providers (+ third-party stubs), citizen notifications + geofence,
+  Prometheus `/metrics` + rate limiting, JWT auth over RBAC, open-data GeoJSON portal,
+  simulation calibration + edge store-and-forward.
+
 ## Still future work (needs hardware / data / GPU / scale)
 - RTSP/CCTV at city scale with hardware-accelerated decode (DeepStream/TensorRT); drones; real GPS/AVL.
 - Helmet / seatbelt / mobile-phone **trained** classifiers (framework + interface are in place).
