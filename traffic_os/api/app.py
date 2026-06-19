@@ -619,6 +619,35 @@ def freight(n: int = 8):
     return st().freight.plan(n=n)
 
 
+class NotifyRequest(BaseModel):
+    to: str
+    message: str
+
+
+@app.post("/notify")
+def notify(req: NotifyRequest, role: str = Depends(require_commissioner)):
+    return _ser(st().notifications.send(req.to, req.message))
+
+
+class GeofenceRequest(BaseModel):
+    lat: float
+    lon: float
+    radius_m: float = 500.0
+    message: str
+
+
+@app.post("/notify/geofence")
+def notify_geofence(req: GeofenceRequest, role: str = Depends(require_commissioner)):
+    res = st().notifications.geofence_alert(req.lat, req.lon, req.radius_m, req.message)
+    audit("notify.geofence", {"recipients": res["recipients"]}, role)
+    return res
+
+
+@app.get("/notifications")
+def notifications():
+    return _ser(st().notifications.recent(100))
+
+
 @app.get("/integrations/status")
 def integrations_status():
     from traffic_os.integrations import get_weather_provider, provider_status

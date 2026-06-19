@@ -146,6 +146,16 @@ class EnforcementZone(BaseModel):
     speed_limit_kph: float | None = None
 
 
+class Notification(BaseModel):
+    id: str
+    ts: datetime
+    channel: str  # sms | whatsapp | push | local
+    to: str
+    message: str
+    status: str = "sent"
+    geofence: dict[str, Any] | None = None
+
+
 class ParkingLot(BaseModel):
     id: str
     name: str

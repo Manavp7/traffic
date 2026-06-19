@@ -59,6 +59,10 @@ class AppState:
 
         self.sustainability = SustainabilityService(self.storage)
 
+        from traffic_os.integrations.notify import NotificationService
+
+        self.notifications = NotificationService(self.storage)
+
         from traffic_os.copilot import CopilotService
 
         self.copilot = CopilotService(
