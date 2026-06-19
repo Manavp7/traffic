@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { post } from "../api";
+import { t, type Lang } from "../i18n";
 
 type Msg = { role: "user" | "bot"; text: string; tool?: string };
 
@@ -12,12 +13,34 @@ const SUGGESTIONS = [
   "Expected traffic next hour?",
 ];
 
-export default function Copilot() {
+export default function Copilot({ lang = "en" }: { lang?: Lang }) {
   const [messages, setMessages] = useState<Msg[]>([
     { role: "bot", text: "Ask me about congestion, accidents, costs, forecasts or actions." },
   ]);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recogRef = useRef<any>(null);
+
+  function startVoice() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setMessages((m) => [...m, { role: "bot", text: "Voice input is not supported in this browser." }]);
+      return;
+    }
+    const r = new SR();
+    recogRef.current = r;
+    r.lang = lang === "hi" ? "hi-IN" : "en-IN";
+    r.interimResults = false;
+    r.onresult = (e: any) => {
+      const text = e.results[0][0].transcript;
+      setQ(text);
+      ask(text);
+    };
+    r.onend = () => setListening(false);
+    setListening(true);
+    r.start();
+  }
 
   async function ask(question: string) {
     if (!question.trim() || busy) return;
@@ -36,7 +59,7 @@ export default function Copilot() {
 
   return (
     <div className="card copilot">
-      <h3>AI Copilot</h3>
+      <h3>{t("copilot_title", lang)}</h3>
       <div className="messages">
         {messages.map((m, i) => (
           <div key={i} className={`msg ${m.role}`}>
@@ -54,12 +77,15 @@ export default function Copilot() {
       <div className="input">
         <input
           value={q}
-          placeholder="Ask the Copilot…"
+          placeholder={t("copilot_placeholder", lang)}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && ask(q)}
           style={{ flex: 1 }}
         />
-        <button onClick={() => ask(q)}>Ask</button>
+        <button className="secondary" onClick={startVoice} disabled={listening}>
+          {listening ? "…" : t("listen", lang)}
+        </button>
+        <button onClick={() => ask(q)}>{t("ask", lang)}</button>
       </div>
     </div>
   );

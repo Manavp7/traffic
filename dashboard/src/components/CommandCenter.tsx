@@ -4,12 +4,13 @@ import Copilot from "./Copilot";
 import SignalControl from "./SignalControl";
 import { usePoll, type Live } from "../hooks";
 import { congestionColor, post } from "../api";
+import type { Lang } from "../i18n";
 
 const ETYPES = ["ambulance", "fire", "police", "disaster"];
 
 const LEVEL = (s: number) => (s < 25 ? "free" : s < 50 ? "moderate" : s < 75 ? "heavy" : "severe");
 
-export default function CommandCenter({ net, live }: { net?: any; live: Live }) {
+export default function CommandCenter({ net, live, lang = "en" }: { net?: any; live: Live; lang?: Lang }) {
   const summary = usePoll<any>("/intelligence/summary", 5000).data;
   const hotspots = usePoll<any[]>("/intelligence/hotspots?n=6", 6000).data || [];
   const bottlenecks = usePoll<any[]>("/intelligence/bottlenecks?n=4", 6000).data || [];
@@ -177,7 +178,7 @@ export default function CommandCenter({ net, live }: { net?: any; live: Live }) 
           )}
         </div>
         <SignalControl />
-        <Copilot />
+        <Copilot lang={lang} />
       </div>
     </div>
   );
