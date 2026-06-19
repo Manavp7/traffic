@@ -20,6 +20,7 @@ from traffic_os.schemas import (
     CityEvent,
     EmergencyType,
     EmergencyVehicle,
+    EnforcementZone,
     Incident,
     InfraScenario,
 )
@@ -612,6 +613,31 @@ def watchlist_scan():
     s = st()
     tracks = s.storage.db.find("track", Track, limit=2000)
     return st().watchlist.scan_tracks(tracks)
+
+
+@app.get("/enforcement/zones")
+def zones_list():
+    from traffic_os.schemas import EnforcementZone
+
+    return _ser(st().storage.db.find("enforcement_zone", EnforcementZone, limit=1000))
+
+
+@app.post("/enforcement/zones")
+def zones_add(zone: EnforcementZone, role: str = Depends(require_commissioner)):
+    st().zones.add_zone(zone)
+    audit("zone.add", {"id": zone.id, "kind": zone.kind}, role)
+    return _ser(zone)
+
+
+@app.post("/enforcement/zones/enforce")
+def zones_enforce(role: str = Depends(require_commissioner)):
+    from traffic_os.violations import ViolationService
+
+    s = st()
+    violations = ViolationService(s.storage).detect()
+    issued = s.zones.enforce(violations)
+    audit("zone.enforce", {"issued": len(issued)}, role)
+    return {"issued": len(issued), "challans": _ser(issued)}
 
 
 @app.get("/road-health")
