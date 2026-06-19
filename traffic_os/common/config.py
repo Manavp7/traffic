@@ -70,6 +70,8 @@ class Settings(BaseSettings):
     api_port: int = 8000
     api_key: str | None = None  # optional simple API-key auth
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])
+    api_rate_limit_per_min: int = 0  # 0 disables rate limiting
+    jwt_secret: str = "traffic-os-dev-secret"
 
     def ensure_dirs(self) -> None:
         """Create dev data directories if missing."""

@@ -45,7 +45,7 @@ def st() -> AppState:
 # --------------------------------------------------------------------------- #
 # auth + RBAC
 # --------------------------------------------------------------------------- #
-_PUBLIC_PATHS = {"/healthz", "/docs", "/openapi.json", "/redoc", "/ws"}
+_PUBLIC_PATHS = {"/healthz", "/docs", "/openapi.json", "/redoc", "/ws", "/metrics"}
 
 
 def check_api_key(request: Request, x_api_key: str | None = Header(default=None)) -> None:
@@ -98,6 +98,34 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from fastapi import Response  # noqa: E402
+from fastapi.responses import PlainTextResponse  # noqa: E402
+
+from traffic_os.api.observability import METRICS, RateLimiter  # noqa: E402
+
+_rate_limiter: RateLimiter | None = None
+
+
+@app.middleware("http")
+async def _observe_and_limit(request: Request, call_next):
+    global _rate_limiter
+    if _rate_limiter is None:
+        _rate_limiter = RateLimiter(get_state().settings.api_rate_limit_per_min)
+    client = request.client.host if request.client else "unknown"
+    if request.url.path not in _PUBLIC_PATHS and not _rate_limiter.allow(client):
+        METRICS.inc("http_rate_limited_total")
+        return Response("rate limit exceeded", status_code=429)
+    METRICS.inc("http_requests_total", {"path": request.url.path})
+    return await call_next(request)
+
+
+@app.get("/metrics")
+def metrics():
+    s = get_state()
+    METRICS.set_gauge("sim_tick", float(s.engine.tick))
+    METRICS.set_gauge("active_vehicles", float(len(s.engine.micro.vehicles)))
+    return PlainTextResponse(METRICS.render())
 
 
 # --------------------------------------------------------------------------- #
