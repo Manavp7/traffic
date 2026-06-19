@@ -8,6 +8,8 @@ const DICT: Record<string, { en: string; hi: string }> = {
   analytics: { en: "Analytics", hi: "विश्लेषण" },
   twin: { en: "3D Twin", hi: "3D ट्विन" },
   mobility: { en: "Mobility", hi: "गतिशीलता" },
+  enforcement: { en: "Enforcement", hi: "प्रवर्तन" },
+  sustainability: { en: "Sustainability", hi: "स्थिरता" },
   citizen: { en: "Citizen", hi: "नागरिक" },
   copilot_title: { en: "AI Copilot", hi: "एआई सहायक" },
   copilot_placeholder: { en: "Ask the Copilot…", hi: "सहायक से पूछें…" },

@@ -10,8 +10,12 @@ import Analytics from "./components/Analytics";
 import ThreeTwin from "./components/ThreeTwin";
 import Mobility from "./components/Mobility";
 import National from "./components/National";
+import Enforcement from "./components/Enforcement";
+import Sustainability from "./components/Sustainability";
 
-type View = "command" | "commissioner" | "national" | "analytics" | "twin" | "mobility" | "citizen";
+type View =
+  | "command" | "commissioner" | "national" | "analytics"
+  | "twin" | "mobility" | "enforcement" | "sustainability" | "citizen";
 
 export default function App() {
   const [view, setView] = useState<View>("command");
@@ -44,7 +48,7 @@ export default function App() {
           <option value="operator">Operator</option>
         </select>
         <div className="tabs">
-          {(["command", "commissioner", "national", "analytics", "twin", "mobility", "citizen"] as View[]).map((v) => (
+          {(["command", "commissioner", "national", "analytics", "twin", "mobility", "enforcement", "sustainability", "citizen"] as View[]).map((v) => (
             <div key={v} className={`tab ${view === v ? "active" : ""}`} onClick={() => setView(v)}>
               {t(v, lang)}
             </div>
@@ -57,6 +61,8 @@ export default function App() {
       {view === "analytics" && <Analytics />}
       {view === "twin" && <div className="body"><div className="main"><ThreeTwin net={net} live={live} /></div></div>}
       {view === "mobility" && <Mobility />}
+      {view === "enforcement" && <Enforcement />}
+      {view === "sustainability" && <Sustainability />}
       {view === "citizen" && <Citizen net={net} />}
     </div>
   );
