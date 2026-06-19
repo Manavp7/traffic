@@ -394,9 +394,67 @@ def planning_scenario(scenario: InfraScenario, role: str = Depends(require_commi
     return _ser(result)
 
 
+@app.get("/planning/scenarios")
+def planning_scenarios(role: str = Depends(require_commissioner)):
+    from traffic_os.planning.scenario_library import ScenarioLibrary
+
+    lib = ScenarioLibrary(st().storage)
+    return lib.compare(lib.results())
+
+
+class RoiRequest(BaseModel):
+    build_cost_inr: float
+
+
+@app.post("/planning/roi")
+def planning_roi(req: RoiRequest, role: str = Depends(require_commissioner)):
+    from traffic_os.planning.scenario_library import ScenarioLibrary
+
+    lib = ScenarioLibrary(st().storage)
+    results = lib.results()
+    if not results:
+        raise HTTPException(404, "no scenario results — run a scenario first")
+    return lib.roi(results[-1], req.build_cost_inr)
+
+
 # --------------------------------------------------------------------------- #
 # recommendations
 # --------------------------------------------------------------------------- #
+@app.get("/intelligence/anomalies")
+def intel_anomalies():
+    from traffic_os.intelligence.anomaly import detect_anomalies
+
+    return detect_anomalies(st().storage)
+
+
+@app.get("/intelligence/kpis")
+def intel_kpis():
+    from traffic_os.intelligence.kpi import evaluate_kpis
+
+    return evaluate_kpis(st().storage)
+
+
+@app.get("/replay")
+def replay(ts: str):
+    from datetime import datetime
+
+    from traffic_os.intelligence.kpi import replay_snapshot
+
+    try:
+        when = datetime.fromisoformat(ts)
+    except ValueError as err:
+        raise HTTPException(400, "ts must be ISO format") from err
+    return replay_snapshot(st().storage, when)
+
+
+@app.get("/signals/abtest")
+def signals_abtest(runs: int = 4, role: str = Depends(require_commissioner)):
+    from traffic_os.decision.abtest import ab_test
+
+    s = st()
+    return ab_test(s.storage, s.intelligence.net, runs=runs, ticks=120)
+
+
 @app.get("/recommendations")
 def recommendations(n: int = 12):
     cached = st().cache.get("recommendations")
