@@ -539,6 +539,40 @@ def cameras_ingest(camera_id: str, max_frames: int = 20, role: str = Depends(req
         raise HTTPException(404, "camera not found") from err
 
 
+@app.post("/enforcement/challans/issue")
+def challans_issue(role: str = Depends(require_commissioner)):
+    from traffic_os.violations import ViolationService
+
+    s = st()
+    violations = ViolationService(s.storage).detect()
+    challans = s.challans.issue_for_violations(violations)
+    audit("challan.issue", {"count": len(challans)}, role)
+    return {"issued": len(challans), "challans": _ser(challans)}
+
+
+@app.get("/enforcement/challans")
+def challans_list():
+    return _ser(st().challans.recent(100))
+
+
+@app.get("/enforcement/challans/summary")
+def challans_summary():
+    return st().challans.summary()
+
+
+@app.get("/enforcement/challans/{challan_id}/verify")
+def challan_verify(challan_id: str):
+    return {"challan_id": challan_id, "evidence_valid": st().challans.verify_evidence(challan_id)}
+
+
+@app.post("/enforcement/challans/{challan_id}/status")
+def challan_status(challan_id: str, status: str, role: str = Depends(require_commissioner)):
+    ch = st().challans.set_status(challan_id, status, actor=role)
+    if ch is None:
+        raise HTTPException(404, "challan not found")
+    return _ser(ch)
+
+
 @app.get("/road-health")
 def road_health():
     from traffic_os.schemas import RoadHealthIssue

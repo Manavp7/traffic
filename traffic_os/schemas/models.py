@@ -114,6 +114,30 @@ class AuditLog(BaseModel):
     detail: dict[str, Any] = Field(default_factory=dict)
 
 
+class Challan(BaseModel):
+    id: str
+    plate: str
+    violation_type: str
+    ts: datetime
+    lat: float = 0.0
+    lon: float = 0.0
+    segment_id: str | None = None
+    vehicle_track_id: str | None = None
+    fine_inr: float = 0.0
+    evidence_ref: str | None = None
+    evidence_sha256: str | None = None
+    status: str = "issued"  # issued | paid | disputed | cancelled
+    custody: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class EnforcementZone(BaseModel):
+    id: str
+    name: str
+    kind: str  # red_light | speed | no_parking
+    segment_id: str
+    speed_limit_kph: float | None = None
+
+
 class BusRoute(BaseModel):
     id: str
     name: str
