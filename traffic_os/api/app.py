@@ -55,7 +55,17 @@ def check_api_key(request: Request, x_api_key: str | None = Header(default=None)
         raise HTTPException(status_code=401, detail="invalid or missing API key")
 
 
-def get_role(x_role: str = Header(default="operator")) -> str:
+def get_role(
+    x_role: str = Header(default="operator"),
+    authorization: str | None = Header(default=None),
+) -> str:
+    # a valid Bearer JWT takes precedence over the X-Role header
+    if authorization and authorization.lower().startswith("bearer "):
+        from traffic_os.api.jwt_auth import verify_token
+
+        payload = verify_token(authorization.split(" ", 1)[1], get_state().settings.jwt_secret)
+        if payload and payload.get("role"):
+            return str(payload["role"]).lower()
     return x_role.lower()
 
 
@@ -516,6 +526,21 @@ class CopilotRequest(BaseModel):
 @app.post("/copilot")
 def copilot(req: CopilotRequest):
     return st().copilot.ask(req.question)
+
+
+class TokenRequest(BaseModel):
+    role: str = "operator"
+    subject: str = "user"
+
+
+@app.post("/auth/token")
+def auth_token(req: TokenRequest):
+    """Issue a signed JWT for a role (demo IdP; pair with real SSO in production)."""
+    from traffic_os.api.jwt_auth import create_token
+
+    s = st()
+    token = create_token({"role": req.role.lower(), "sub": req.subject}, s.settings.jwt_secret)
+    return {"access_token": token, "token_type": "bearer", "role": req.role.lower()}
 
 
 @app.get("/copilot/health")
