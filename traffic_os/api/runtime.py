@@ -41,11 +41,13 @@ class AppState:
             self.storage, self.intelligence, kg=self.kg, prediction=self.prediction
         )
         from traffic_os.edge import CameraManager
-        from traffic_os.mobility import FreightService, TransitService
+        from traffic_os.mobility import FreightService, ParkingService, TransitService, TripPlanner
 
         self.cameras = CameraManager(self.storage)
         self.transit = TransitService(self.storage)
         self.freight = FreightService(self.storage)
+        self.parking = ParkingService(self.storage)
+        self.planner = TripPlanner(self.storage, self.transit)
 
         from traffic_os.enforcement import ChallanService, WatchlistService, ZoneService
 

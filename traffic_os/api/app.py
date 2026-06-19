@@ -489,6 +489,68 @@ def sustainability_pricing():
     return st().sustainability.pricing()
 
 
+@app.get("/parking")
+def parking():
+    return st().parking.status()
+
+
+@app.get("/parking/nearest")
+def parking_nearest(lat: float, lon: float, need: int = 1):
+    res = st().parking.nearest_free(lat, lon, need=need)
+    if res is None:
+        raise HTTPException(404, "no free parking found")
+    return res
+
+
+@app.get("/planner")
+def planner(origin: str, destination: str, accessible: bool = False):
+    return st().planner.plan(origin, destination, accessible=accessible)
+
+
+@app.post("/dispatch")
+def dispatch(role: str = Depends(require_commissioner)):
+    from traffic_os.decision.dispatch import DispatchService
+
+    s = st()
+    active = s.storage.db.find("incident", Incident, where={"status": "active"})
+    results = DispatchService(s.storage).dispatch(active, s.intelligence.net)
+    audit("dispatch", {"incidents": len(active)}, role)
+    return [r.__dict__ for r in results]
+
+
+class EvacuationRequest(BaseModel):
+    zone_junctions: list[str]
+    exit_junctions: list[str] | None = None
+    population: int = 10000
+
+
+@app.post("/evacuation")
+def evacuation(req: EvacuationRequest, role: str = Depends(require_commissioner)):
+    from traffic_os.decision.evacuation import nearest_exits, plan_evacuation
+
+    net = st().intelligence.net
+    exits = req.exit_junctions
+    if not exits and req.zone_junctions:
+        c = net.junctions[req.zone_junctions[0]]
+        exits = nearest_exits(net, (c.lat, c.lon), k=3)
+    return plan_evacuation(net, req.zone_junctions, exits or [], population=req.population)
+
+
+class ConvoyRequest(BaseModel):
+    lat: float
+    lon: float
+    dest_lat: float
+    dest_lon: float
+
+
+@app.post("/convoy")
+def convoy(req: ConvoyRequest, role: str = Depends(require_commissioner)):
+    from traffic_os.decision.convoy import plan_convoy
+
+    s = st()
+    return plan_convoy(s.intelligence.net, s.storage, req.lat, req.lon, req.dest_lat, req.dest_lon)
+
+
 @app.get("/transit")
 def transit():
     return st().transit.status()

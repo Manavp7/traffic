@@ -146,6 +146,20 @@ class EnforcementZone(BaseModel):
     speed_limit_kph: float | None = None
 
 
+class ParkingLot(BaseModel):
+    id: str
+    name: str
+    junction_id: str | None = None
+    lat: float
+    lon: float
+    capacity: int = 100
+    occupied: int = 0
+
+    @property
+    def available(self) -> int:
+        return max(0, self.capacity - self.occupied)
+
+
 class BusRoute(BaseModel):
     id: str
     name: str
