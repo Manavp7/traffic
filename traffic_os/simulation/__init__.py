@@ -1,5 +1,6 @@
 """Simulation / digital-twin package."""
 
+from traffic_os.simulation.calibration import calibrate_demand
 from traffic_os.simulation.engine import LiveSnapshot, SimulationEngine
 from traffic_os.simulation.history import generate_history
 from traffic_os.simulation.microsim import MicroSim
@@ -25,4 +26,5 @@ __all__ = [
     "save_network",
     "load_network",
     "generate_history",
+    "calibrate_demand",
 ]
