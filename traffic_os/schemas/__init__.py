@@ -48,6 +48,7 @@ from traffic_os.schemas.models import (
     Track,
     TrackPoint,
     Violation,
+    WatchlistEntry,
     Weather,
 )
 
@@ -102,5 +103,6 @@ __all__ = [
     "Track",
     "TrackPoint",
     "Violation",
+    "WatchlistEntry",
     "Weather",
 ]

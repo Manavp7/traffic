@@ -130,6 +130,14 @@ class Challan(BaseModel):
     custody: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class WatchlistEntry(BaseModel):
+    id: str = ""  # set to plate by the service for stable upserts
+    plate: str
+    reason: str = "stolen"  # stolen | wanted | unpaid_dues | bolo
+    added_ts: datetime = Field(default_factory=utcnow)
+    active: bool = True
+
+
 class EnforcementZone(BaseModel):
     id: str
     name: str

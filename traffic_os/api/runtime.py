@@ -47,9 +47,10 @@ class AppState:
         self.transit = TransitService(self.storage)
         self.freight = FreightService(self.storage)
 
-        from traffic_os.enforcement import ChallanService
+        from traffic_os.enforcement import ChallanService, WatchlistService
 
         self.challans = ChallanService(self.storage)
+        self.watchlist = WatchlistService(self.storage)
 
         from traffic_os.copilot import CopilotService
 

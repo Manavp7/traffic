@@ -252,6 +252,21 @@ def alerts():
                 }
             )
 
+    from traffic_os.schemas import Track
+
+    tracks = s.storage.db.find("track", Track, limit=2000)
+    for hit in s.watchlist.scan_tracks(tracks):
+        out.append(
+            {
+                "severity": "critical",
+                "kind": "watchlist",
+                "message": f"Watchlisted vehicle {hit['plate']} ({hit['reason']}) detected",
+                "lat": hit["lat"],
+                "lon": hit["lon"],
+                "ts": None,
+            }
+        )
+
     out.sort(key=lambda a: _rank.get(a["severity"], 9))
     return out
 
@@ -571,6 +586,32 @@ def challan_status(challan_id: str, status: str, role: str = Depends(require_com
     if ch is None:
         raise HTTPException(404, "challan not found")
     return _ser(ch)
+
+
+class WatchlistRequest(BaseModel):
+    plate: str
+    reason: str = "stolen"
+
+
+@app.get("/enforcement/watchlist")
+def watchlist_list():
+    return _ser(st().watchlist.entries())
+
+
+@app.post("/enforcement/watchlist")
+def watchlist_add(req: WatchlistRequest, role: str = Depends(require_commissioner)):
+    entry = st().watchlist.add(req.plate, req.reason)
+    audit("watchlist.add", {"plate": req.plate, "reason": req.reason}, role)
+    return _ser(entry)
+
+
+@app.get("/enforcement/watchlist/scan")
+def watchlist_scan():
+    from traffic_os.schemas import Track
+
+    s = st()
+    tracks = s.storage.db.find("track", Track, limit=2000)
+    return st().watchlist.scan_tracks(tracks)
 
 
 @app.get("/road-health")
