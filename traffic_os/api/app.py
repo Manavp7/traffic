@@ -45,7 +45,16 @@ def st() -> AppState:
 # --------------------------------------------------------------------------- #
 # auth + RBAC
 # --------------------------------------------------------------------------- #
-_PUBLIC_PATHS = {"/healthz", "/docs", "/openapi.json", "/redoc", "/ws", "/metrics"}
+_PUBLIC_PATHS = {
+    "/healthz",
+    "/docs",
+    "/openapi.json",
+    "/redoc",
+    "/ws",
+    "/metrics",
+    "/opendata/network.geojson",
+    "/opendata/incidents.geojson",
+}
 
 
 def check_api_key(request: Request, x_api_key: str | None = Header(default=None)) -> None:
@@ -885,6 +894,50 @@ def safety_driver_scores(n: int = 20):
     s = st()
     tracks = s.storage.db.find("track", Track, limit=2000)
     return driver_scores(tracks, s.intelligence.net)[:n]
+
+
+@app.get("/opendata/network.geojson")
+def opendata_network():
+    s = st()
+    net = s.intelligence.net
+    metrics = s.intelligence.latest_metrics()
+    features = []
+    for sid, seg in net.segments.items():
+        m = metrics.get(sid)
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "id": sid,
+                    "name": seg.name,
+                    "lanes": seg.lanes,
+                    "speed_limit_kph": seg.speed_limit_kph,
+                    "congestion": m.congestion_score if m else None,
+                    "speed_kph": m.speed_kph if m else None,
+                },
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[lon, lat] for lat, lon in seg.geometry],
+                },
+            }
+        )
+    return {"type": "FeatureCollection", "features": features}
+
+
+@app.get("/opendata/incidents.geojson")
+def opendata_incidents():
+    rows = st().storage.db.find("incident", Incident, where={"status": "active"})
+    return {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "properties": {"id": i.id, "type": i.type.value, "severity": i.severity},
+                "geometry": {"type": "Point", "coordinates": [i.lon, i.lat]},
+            }
+            for i in rows
+        ],
+    }
 
 
 @app.get("/road-health")
