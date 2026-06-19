@@ -619,6 +619,17 @@ def freight(n: int = 8):
     return st().freight.plan(n=n)
 
 
+@app.get("/integrations/status")
+def integrations_status():
+    from traffic_os.integrations import get_weather_provider, provider_status
+
+    s = st()
+    return {
+        "providers": provider_status(),
+        "weather_now": get_weather_provider(s.storage).current(),
+    }
+
+
 @app.get("/events")
 def events():
     return _ser(st().storage.db.find("city_event", CityEvent, limit=200))
