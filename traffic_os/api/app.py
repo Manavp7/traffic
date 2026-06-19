@@ -474,6 +474,21 @@ def national(role: str = Depends(require_commissioner)):
     return s.national.national_summary()
 
 
+@app.get("/sustainability")
+def sustainability():
+    return st().sustainability.summary()
+
+
+@app.get("/sustainability/aqi")
+def sustainability_aqi():
+    return st().sustainability.aqi()
+
+
+@app.get("/sustainability/pricing")
+def sustainability_pricing():
+    return st().sustainability.pricing()
+
+
 @app.get("/transit")
 def transit():
     return st().transit.status()

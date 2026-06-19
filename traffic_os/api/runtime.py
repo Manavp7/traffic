@@ -53,6 +53,10 @@ class AppState:
         self.watchlist = WatchlistService(self.storage)
         self.zones = ZoneService(self.storage, self.challans)
 
+        from traffic_os.sustainability import SustainabilityService
+
+        self.sustainability = SustainabilityService(self.storage)
+
         from traffic_os.copilot import CopilotService
 
         self.copilot = CopilotService(
